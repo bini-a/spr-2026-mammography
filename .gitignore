@@ -1,0 +1,28 @@
+# Competition data — redistribution prohibited by competition rules
+spr-2026-mammography-report-classification/
+*.csv
+*.docx
+*DE.md
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model weights / large outputs
+*.bin
+*.pt
+*.pkl
+*.h5
+outputs/
