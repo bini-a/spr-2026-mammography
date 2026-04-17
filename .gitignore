@@ -20,6 +20,11 @@ build/
 # Jupyter
 .ipynb_checkpoints/
 
+# Notebook-generated file copies inside experiment dirs
+experiments/*/src/
+experiments/*/configs/
+experiments/*/experiments/
+
 # Model weights / large outputs
 *.bin
 *.pt

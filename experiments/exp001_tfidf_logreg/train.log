@@ -1,0 +1,66 @@
+[log] 2026-04-14 17:35:02  →  experiments/exp001_tfidf_logreg/train.log
+
+=======================================================
+Experiment : exp001_tfidf_logreg
+Config     : experiments/exp001_tfidf_logreg/config.yaml
+Started    : 2026-04-14 17:35:02
+Git commit : c272275
+=======================================================
+Loading data... done  (18,272 rows, 5 folds)
+
+=======================================================
+OOF Results — exp001_tfidf_logreg
+=======================================================
+Macro F1: 0.6990
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.726  0.634  0.849    610
+1         0.920  0.868  0.978    693
+2         0.957  0.996  0.921  15968
+3         0.496  0.363  0.781    713
+4         0.614  0.541  0.710    214
+5         0.500  0.519  0.483     29
+6         0.680  0.603  0.778     45
+
+Fold F1s : [0.7103, 0.682, 0.6935, 0.6827, 0.7131]
+Mean ± σ : 0.6963 ± 0.0132
+
+--- Retraining on full data ---
+
+Duration   : 72s  (1.2m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp001_tfidf_logreg/
+[log] 2026-04-14 17:37:25  →  experiments/exp001_tfidf_logreg/train.log
+
+=======================================================
+Experiment : exp001_tfidf_logreg
+Config     : experiments/exp001_tfidf_logreg/config.yaml
+Started    : 2026-04-14 17:37:25
+Git commit : c272275
+=======================================================
+Loading data... done  (18,272 rows, 5 folds)
+
+=======================================================
+OOF Results — exp001_tfidf_logreg
+=======================================================
+Macro F1: 0.6990
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.726  0.634  0.849    610
+1         0.920  0.868  0.978    693
+2         0.957  0.996  0.921  15968
+3         0.496  0.363  0.781    713
+4         0.614  0.541  0.710    214
+5         0.500  0.519  0.483     29
+6         0.680  0.603  0.778     45
+
+Fold F1s : [0.7103, 0.682, 0.6935, 0.6827, 0.7131]
+Mean ± σ : 0.6963 ± 0.0132
+
+--- Retraining on full data ---
+
+Duration   : 73s  (1.2m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp001_tfidf_logreg/

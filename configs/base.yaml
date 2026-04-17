@@ -1,0 +1,42 @@
+# ─────────────────────────────────────────────────────────
+# BASE CONFIG TEMPLATE
+# Copy this file, rename it (e.g. exp002_svc_c5.yaml),
+# change experiment_name and the fields you want to tweak.
+# ─────────────────────────────────────────────────────────
+
+experiment_name: exp000_template   # CHANGE THIS — must be unique
+notes: ""                          # what are you testing in this experiment?
+
+seed: 42
+
+data:
+  n_folds: 5
+
+# ── TF-IDF features ──────────────────────────────────────
+features:
+  word_tfidf:
+    analyzer: word
+    ngram_range: [1, 2]
+    max_features: 150000
+    sublinear_tf: true
+    min_df: 2
+  char_tfidf:
+    analyzer: char_wb
+    ngram_range: [2, 5]
+    max_features: 150000
+    sublinear_tf: true
+    min_df: 3
+
+# ── Model ────────────────────────────────────────────────
+model:
+  type: logistic_regression   # logistic_regression | linear_svc
+  params:
+    C: 1.0
+    max_iter: 2000
+    class_weight: balanced    # always use balanced for this dataset
+    solver: lbfgs             # lbfgs for LR; ignored for LinearSVC
+    seed: 42
+
+# ── Post-processing ───────────────────────────────────────
+threshold:
+  enabled: false   # set true to run OOF threshold tuning after training
