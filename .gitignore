@@ -32,3 +32,5 @@ experiments/*/experiments/
 *.h5
 *.npy
 outputs/
+wandb/
+tea_debug.log
