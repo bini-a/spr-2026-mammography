@@ -3,6 +3,12 @@ notes: "BERTimbau base (neuralmind/bert-base-portuguese-cased, MIT license) — 
 
 seed: 42
 
+# gpu: all        → use both GPUs via DataParallel (fastest single experiment)
+# gpu: 0          → GPU 0 only (run a second experiment on GPU 1 in parallel)
+# gpu: 1          → GPU 1 only
+# gpu: [0, 1]     → explicit multi-GPU (same as 'all' on this machine)
+gpu: all
+
 data:
   n_folds: 5
 
@@ -23,3 +29,9 @@ model:
 
 threshold:
   enabled: true             # OOF threshold tuning — important for rare classes 4/5/6
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null              # your wandb username/org; null = default account
+  tags: [bertimbau, transformer, portuguese]

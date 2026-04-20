@@ -11,3 +11,116 @@ Notes      : BERTimbau base (neuralmind/bert-base-portuguese-cased, MIT license)
 GPUs : 2 × NVIDIA RTX 6000 Ada Generation + NVIDIA RTX 6000 Ada Generation
 Loading data... done  (18,272 rows, 5 folds)
 Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+[log] 2026-04-20 03:07:06  →  experiments/exp004_bertimbau/train.log
+
+=======================================================
+Experiment : exp004_bertimbau
+Config     : configs/exp004_bertimbau.yaml
+Started    : 2026-04-20 03:07:06
+Git commit : a089aff
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base (neuralmind/bert-base-portuguese-cased, MIT license) — Portuguese BERT, 5-fold OOF, 5 epochs, AdamW lr=2e-5, class-weighted CE, FP16, 2×RTX6000Ada
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/cefk7gwx
+Loading data... done  (18,272 rows, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+
+=======================================================
+OOF Results — exp004_bertimbau
+=======================================================
+Macro F1: 0.7010
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.799  0.764  0.838    610
+1         0.932  0.894  0.974    693
+2         0.978  0.988  0.968  15968
+3         0.589  0.523  0.673    713
+4         0.653  0.634  0.673    214
+5         0.356  0.500  0.276     29
+6         0.600  0.600  0.600     45
+
+Fold F1s : [0.7449, 0.6431, 0.7213, 0.7118, 0.6327]
+Mean ± σ : 0.6907 ± 0.0446
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7010
+Threshold tuning best macro F1:     0.7260
+Offsets: {0: np.float64(0.2049), 1: np.float64(-0.0172), 2: np.float64(0.2875), 3: np.float64(0.0805), 4: np.float64(-0.2242), 5: np.float64(0.1057), 6: np.float64(-0.1049)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7260
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.795  0.757  0.838    610
+1         0.938  0.910  0.967    693
+2         0.979  0.987  0.972  15968
+3         0.602  0.551  0.665    713
+4         0.668  0.673  0.664    214
+5         0.480  0.571  0.414     29
+6         0.619  0.667  0.578     45
+
+[log] 2026-04-20 03:33:21  →  experiments/exp004_bertimbau/train.log
+
+=======================================================
+Experiment : exp004_bertimbau
+Config     : configs/exp004_bertimbau.yaml
+Started    : 2026-04-20 03:33:21
+Git commit : a089aff
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base (neuralmind/bert-base-portuguese-cased, MIT license) — Portuguese BERT, 5-fold OOF, 5 epochs, AdamW lr=2e-5, class-weighted CE, FP16, 2×RTX6000Ada
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/7gsojl8j
+Loading data... done  (18,272 rows, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+
+=======================================================
+OOF Results — exp004_bertimbau
+=======================================================
+Macro F1: 0.7233
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.811  0.788  0.836    610
+1         0.933  0.899  0.971    693
+2         0.978  0.989  0.968  15968
+3         0.594  0.520  0.691    713
+4         0.655  0.622  0.692    214
+5         0.449  0.550  0.379     29
+6         0.643  0.692  0.600     45
+
+Fold F1s : [0.775, 0.6408, 0.7594, 0.7227, 0.6708]
+Mean ± σ : 0.7137 ± 0.0512
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7233
+Threshold tuning best macro F1:     0.7415
+Offsets: {0: np.float64(0.0765), 1: np.float64(0.0506), 2: np.float64(0.2407), 3: np.float64(-0.2727), 4: np.float64(-0.1314), 5: np.float64(0.2702), 6: np.float64(0.2342)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7415
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.815  0.786  0.848    610
+1         0.937  0.905  0.971    693
+2         0.980  0.986  0.975  15968
+3         0.609  0.583  0.638    713
+4         0.659  0.642  0.678    214
+5         0.545  0.577  0.517     29
+6         0.644  0.644  0.644     45
+
+
+--- Retraining on full data ---
+Model saved → experiments/exp004_bertimbau/model/
+
+Duration   : 1731s  (28.9m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp004_bertimbau/

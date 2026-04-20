@@ -46,8 +46,12 @@ def print_metrics(metrics: dict, title: str = "") -> None:
 
 
 def save_metrics(metrics: dict, out_dir: str) -> None:
-    os.makedirs(out_dir, exist_ok=True)
-    path = out_dir if out_dir.endswith(".json") else os.path.join(out_dir, "metrics.json")
+    if out_dir.endswith(".json"):
+        path = out_dir
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    else:
+        os.makedirs(out_dir, exist_ok=True)
+        path = os.path.join(out_dir, "metrics.json")
     with open(path, "w") as f:
         json.dump(metrics, f, indent=2)
 
