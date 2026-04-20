@@ -1,0 +1,34 @@
+[log] 2026-04-17 10:02:00  →  experiments/exp003b_tfidf_lgbm/train.log
+
+=======================================================
+Experiment : exp003b_tfidf_lgbm
+Config     : configs/exp003b_tfidf_lgbm.yaml
+Started    : 2026-04-17 10:02:00
+Git commit : adc84f4
+Notes      : LightGBM fix: is_unbalance=True instead of class_weight=balanced (sklearn weights caused 550:1 ratio instability)
+=======================================================
+Loading data... done  (18,272 rows, 5 folds)
+
+=======================================================
+OOF Results — exp003b_tfidf_lgbm
+=======================================================
+Macro F1: 0.2482
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.116  0.134  0.102    610
+1         0.511  0.649  0.421    693
+2         0.908  0.905  0.911  15968
+3         0.151  0.162  0.142    713
+4         0.044  0.034  0.061    214
+5         0.000  0.000  0.000     29
+6         0.008  0.005  0.022     45
+
+Fold F1s : [0.1882, 0.3427, 0.2393, 0.2501, 0.1908]
+Mean ± σ : 0.2422 ± 0.0561
+
+--- Retraining on full data ---
+
+Duration   : 397s  (6.6m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp003b_tfidf_lgbm/

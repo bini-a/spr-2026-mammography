@@ -1,0 +1,43 @@
+[log] 2026-04-17 09:44:28  →  experiments/exp002_tfidf_svc/train.log
+
+=======================================================
+Experiment : exp002_tfidf_svc
+Config     : configs/exp002_tfidf_svc.yaml
+Started    : 2026-04-17 09:44:28
+Git commit : adc84f4
+Notes      : LinearSVC baseline — same TF-IDF as exp001, swap LR for SVC with isotonic calibration
+=======================================================
+Loading data... [log] 2026-04-17 09:45:53  →  experiments/exp002_tfidf_svc/train.log
+
+=======================================================
+Experiment : exp002_tfidf_svc
+Config     : configs/exp002_tfidf_svc.yaml
+Started    : 2026-04-17 09:45:53
+Git commit : adc84f4
+Notes      : LinearSVC baseline — same TF-IDF as exp001, swap LR for SVC with isotonic calibration
+=======================================================
+Loading data... done  (18,272 rows, 5 folds)
+
+=======================================================
+OOF Results — exp002_tfidf_svc
+=======================================================
+Macro F1: 0.7184
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.786  0.800  0.772    610
+1         0.953  0.965  0.942    693
+2         0.981  0.972  0.989  15968
+3         0.565  0.662  0.494    713
+4         0.633  0.691  0.584    214
+5         0.348  0.471  0.276     29
+6         0.763  0.935  0.644     45
+
+Fold F1s : [0.7441, 0.7309, 0.6888, 0.7328, 0.6737]
+Mean ± σ : 0.7141 ± 0.0276
+
+--- Retraining on full data ---
+
+Duration   : 79s  (1.3m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp002_tfidf_svc/

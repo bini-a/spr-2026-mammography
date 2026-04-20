@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────
+# TRANSFORMER CONFIG TEMPLATE
+# Copy this file, rename it (e.g. exp004_bertimbau.yaml),
+# change experiment_name and the fields you want to tweak.
+#
+# Recommended local starting points:
+#   BERTimbau (PT-BR BERT):   neuralmind/bert-base-portuguese-cased
+#   XLM-RoBERTa base:         xlm-roberta-base
+#   XLM-RoBERTa large:        xlm-roberta-large  (needs more GPU memory)
+#
+# Kaggle submission note:
+#   Attach model weights as a Kaggle dataset — internet is disabled at runtime.
+#   The notebook_gen path for transformers is not yet automated; submit manually.
+# ─────────────────────────────────────────────────────────
+
+experiment_name: exp000_transformer_template   # CHANGE THIS
+notes: ""
+
+seed: 42
+
+# ── GPU selection ─────────────────────────────────────────
+# gpu: all      → all available GPUs via DataParallel (fastest single run)
+# gpu: 0        → GPU 0 only (leave GPU 1 free for a parallel experiment)
+# gpu: 1        → GPU 1 only
+# gpu: [0, 1]   → explicit list (same as 'all' on a 2-GPU machine)
+# Shell override: CUDA_VISIBLE_DEVICES=1 python run.py configs/exp.yaml --train
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer                                      # triggers GPU training loop
+  pretrained: neuralmind/bert-base-portuguese-cased      # HuggingFace model ID
+  max_length: 512                                        # truncate to this many tokens
+
+  params:
+    epochs: 5
+    batch_size: 32                  # per-GPU batch; total = batch_size × n_gpus
+    eval_batch_size: 64
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1               # fraction of total steps used for warmup
+    weight_decay: 0.01
+    fp16: true                      # mixed precision — disable only if you see NaN losses
+
+threshold:
+  enabled: false   # set true to run OOF threshold tuning after training
+
+# ── Weights & Biases ──────────────────────────────────────
+wandb:
+  enabled: false             # set true to enable experiment tracking
+  project: spr-2026-mammography
+  entity: null               # your wandb username/org; null = default account
+  tags: []

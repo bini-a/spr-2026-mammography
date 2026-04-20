@@ -1,0 +1,13 @@
+[log] 2026-04-20 02:35:19  →  experiments/exp004_bertimbau/train.log
+
+=======================================================
+Experiment : exp004_bertimbau
+Config     : configs/exp004_bertimbau.yaml
+Started    : 2026-04-20 02:35:19
+Git commit : adc84f4
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base (neuralmind/bert-base-portuguese-cased, MIT license) — Portuguese BERT, 5-fold OOF, 5 epochs, AdamW lr=2e-5, class-weighted CE, FP16, 2×RTX6000Ada
+=======================================================
+GPUs : 2 × NVIDIA RTX 6000 Ada Generation + NVIDIA RTX 6000 Ada Generation
+Loading data... done  (18,272 rows, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done

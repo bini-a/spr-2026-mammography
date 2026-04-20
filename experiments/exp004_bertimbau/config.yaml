@@ -1,0 +1,25 @@
+experiment_name: exp004_bertimbau
+notes: "BERTimbau base (neuralmind/bert-base-portuguese-cased, MIT license) — Portuguese BERT, 5-fold OOF, 5 epochs, AdamW lr=2e-5, class-weighted CE, FP16, 2×RTX6000Ada"
+
+seed: 42
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: neuralmind/bert-base-portuguese-cased
+  max_length: 512
+
+  params:
+    epochs: 5
+    batch_size: 32          # DataParallel splits this across both GPUs → 16 per GPU
+    eval_batch_size: 64
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+
+threshold:
+  enabled: true             # OOF threshold tuning — important for rare classes 4/5/6

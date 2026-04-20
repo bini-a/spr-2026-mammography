@@ -1,3 +1,5 @@
+UV := $(shell command -v uv 2>/dev/null || echo ~/.local/bin/uv)
+
 .PHONY: help install run train predict rerun compare clean
 
 CONFIG ?=
@@ -17,29 +19,29 @@ help:
 	@echo ""
 
 install:
-	pip install -r requirements.txt
+	$(UV) sync
 
 run:
 	@[ -n "$(CONFIG)" ] || (echo "Usage: make run CONFIG=configs/<name>.yaml" && exit 1)
-	python run.py $(CONFIG)
+	$(UV) run python run.py $(CONFIG)
 
 train:
 	@[ -n "$(CONFIG)" ] || (echo "Usage: make train CONFIG=configs/<name>.yaml" && exit 1)
-	python run.py $(CONFIG) --train
+	$(UV) run python run.py $(CONFIG) --train
 
 predict:
 	@[ -n "$(CONFIG)" ] || (echo "Usage: make predict CONFIG=configs/<name>.yaml" && exit 1)
-	python run.py $(CONFIG) --predict
+	$(UV) run python run.py $(CONFIG) --predict
 
 rerun:
 	@[ -n "$(EXP)" ] || (echo "Usage: make rerun EXP=exp001_tfidf_logreg" && exit 1)
-	python run.py --rerun $(EXP) --train
+	$(UV) run python run.py --rerun $(EXP) --train
 
 compare:
-	python run.py --compare
+	$(UV) run python run.py --compare
 
 compare-full:
-	python run.py --compare --full
+	$(UV) run python run.py --compare --full
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null; true

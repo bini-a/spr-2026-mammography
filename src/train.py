@@ -26,7 +26,7 @@ from src.features import (
     save_vectorizers,
 )
 from src.logging_utils import run_log
-from src.models.linear import build_model, save_model
+from src.models import build_model, save_model
 from src.threshold import tune_thresholds
 
 CLASSES = [0, 1, 2, 3, 4, 5, 6]
