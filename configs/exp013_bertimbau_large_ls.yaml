@@ -1,0 +1,36 @@
+experiment_name: exp013_bertimbau_large_ls
+notes: "BERTimbau large + label smoothing (0.1) + early stopping — controls for LS effect on large model; pair with exp012 (no LS) to isolate label smoothing contribution"
+
+seed: 42
+
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: neuralmind/bert-large-portuguese-cased
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 1.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+    label_smoothing: 0.1
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [bertimbau-large, transformer, portuguese, label-smoothing, early-stopping]

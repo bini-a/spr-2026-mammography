@@ -1,0 +1,35 @@
+experiment_name: exp021a_biobertpt
+notes: "BioBERTpt-all (pucpr/biobertpt-all) — BERTimbau + clinical/biomedical continued pretraining (SciELO + Brazilian clinical records); baseline to test whether clinical PT-BR pretraining beats plain BERTimbau (exp010)"
+
+seed: 42
+
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: pucpr/biobertpt-all
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 1.5e-5    # lower than BERTimbau (2e-5) — model is already closer to target domain
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [biobertpt, transformer, portuguese, clinical-pretraining]

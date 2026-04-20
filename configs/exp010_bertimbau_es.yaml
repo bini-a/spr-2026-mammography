@@ -1,0 +1,35 @@
+experiment_name: exp010_bertimbau_es
+notes: "BERTimbau base + early stopping — re-run of best model (exp004) with epochs=10, patience=2, max_length=256; tests whether more epochs + ES beats 5-epoch fixed run"
+
+seed: 42
+
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: neuralmind/bert-base-portuguese-cased
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [bertimbau, transformer, portuguese, early-stopping]

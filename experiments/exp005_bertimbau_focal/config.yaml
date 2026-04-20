@@ -1,0 +1,35 @@
+experiment_name: exp005_bertimbau_focal
+notes: "BERTimbau base + focal loss (γ=2) — identical to exp004 except loss_fn: focal; A/B comparison to determine best loss for future experiments"
+
+seed: 42
+
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: neuralmind/bert-base-portuguese-cased
+  max_length: 512
+
+  params:
+    epochs: 5
+    batch_size: 32
+    eval_batch_size: 64
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    loss_fn: focal
+    focal_gamma: 2.0
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [bertimbau, transformer, portuguese, focal-loss]

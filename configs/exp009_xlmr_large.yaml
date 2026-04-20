@@ -1,0 +1,34 @@
+experiment_name: exp009_xlmr_large
+notes: "XLM-RoBERTa large (560M) — higher capacity for rare classes 5/6; batch_size=16 + grad_accum=2 keeps effective batch=32"
+
+seed: 42
+
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: xlm-roberta-large
+  max_length: 256
+
+  params:
+    epochs: 5
+    batch_size: 32             # 256 tokens frees memory; effective batch = 32 total
+    eval_batch_size: 64
+    gradient_accumulation_steps: 2   # effective batch = 32 × 2 (accum) = 64
+    learning_rate: 1.0e-5      # lower lr for large model
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    loss_fn: cross_entropy    # exp005 confirmed: focal loss hurts (0.684 vs 0.742); keep CE+class_weights
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [xlmr-large, transformer, multilingual]

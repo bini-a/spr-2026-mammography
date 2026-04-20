@@ -1,0 +1,35 @@
+experiment_name: exp008_mdeberta
+notes: "mDeBERTa-v3-base (microsoft/mdeberta-v3-base, 278M) — multilingual DeBERTa, disentangled attention + ELECTRA-style pretraining, CC-100 incl. PT-BR"
+
+seed: 42
+
+gpu: 1    # run on GPU 1 only so exp012 can run on GPU 0 in parallel
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: microsoft/mdeberta-v3-base
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 5.0e-6    # 2e-5 caused collapse (predicted class 0 for all); DeBERTa-v3 needs lower LR
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: false    # mDeBERTa-v3 uses BF16 internally; FP16 AMP raises "unscale FP16 gradients" error
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [mdeberta, transformer, multilingual]

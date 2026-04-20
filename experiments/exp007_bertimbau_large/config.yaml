@@ -1,0 +1,34 @@
+experiment_name: exp007_bertimbau_large
+notes: "BERTimbau large (neuralmind/bert-large-portuguese-cased, ~340M) — PT-BR native, 24 layers; direct scale-up from exp004 base"
+
+seed: 42
+
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: neuralmind/bert-large-portuguese-cased
+  max_length: 512
+
+  params:
+    epochs: 5
+    batch_size: 32
+    eval_batch_size: 64
+    gradient_accumulation_steps: 1
+    learning_rate: 1.0e-5      # lower lr for larger model — more sensitive to updates
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    loss_fn: cross_entropy    # exp005 confirmed: focal loss hurts (0.684 vs 0.742); keep CE+class_weights
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [bertimbau-large, transformer, portuguese]

@@ -1,0 +1,34 @@
+experiment_name: exp006_xlmr_base
+notes: "XLM-RoBERTa base (270M) — multilingual RoBERTa, CC-100 corpus incl. PT-BR; A/B vs BERTimbau base (exp004)"
+
+seed: 42
+
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: xlm-roberta-base
+  max_length: 512
+
+  params:
+    epochs: 5
+    batch_size: 32
+    eval_batch_size: 64
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    loss_fn: cross_entropy    # exp005 confirmed: focal loss hurts (0.684 vs 0.742); keep CE+class_weights
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [xlmr, transformer, multilingual]

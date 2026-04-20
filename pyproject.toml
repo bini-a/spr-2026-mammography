@@ -17,6 +17,7 @@ dependencies = [
     "datasets>=2.14",
     "accelerate>=0.27",
     "wandb>=0.17",
+    "sentencepiece>=0.1.99",   # required by mDeBERTa tokenizer
 ]
 
 [dependency-groups]
