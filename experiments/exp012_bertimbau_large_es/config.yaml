@@ -1,0 +1,35 @@
+experiment_name: exp012_bertimbau_large_es
+notes: "BERTimbau large + early stopping — re-run of exp007 with epochs=10, patience=2; tests whether large model was under-trained at 5 epochs (exp007=0.7136 vs base exp004=0.7415)"
+
+seed: 42
+
+gpu: 0    # run on GPU 0 only so exp008 can run on GPU 1 in parallel
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: neuralmind/bert-large-portuguese-cased
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 1.0e-5    # lower LR appropriate for 340M-param model
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [bertimbau-large, transformer, portuguese, early-stopping]

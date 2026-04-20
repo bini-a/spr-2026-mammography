@@ -2,7 +2,6 @@
 spr-2026-mammography-report-classification/
 *.csv
 *.docx
-*DE.md
 # macOS
 .DS_Store
 
@@ -31,6 +30,11 @@ experiments/*/experiments/
 *.pkl
 *.h5
 *.npy
+*.safetensors
+models/
 outputs/
 wandb/
 tea_debug.log
+
+# Runtime logs (root-level nohup runs)
+run_*.log
