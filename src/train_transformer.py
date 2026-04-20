@@ -22,6 +22,7 @@ from datetime import datetime
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, Dataset, Subset
 from transformers import get_linear_schedule_with_warmup
@@ -37,6 +38,18 @@ from src.threshold import tune_thresholds
 
 CLASSES = [0, 1, 2, 3, 4, 5, 6]
 N_CLASSES = len(CLASSES)
+
+
+class _FocalLoss(nn.Module):
+    def __init__(self, gamma: float = 2.0, weight=None):
+        super().__init__()
+        self.gamma = gamma
+        self.weight = weight
+
+    def forward(self, logits, targets):
+        ce = F.cross_entropy(logits, targets, weight=self.weight, reduction="none")
+        pt = torch.exp(-ce)
+        return (((1 - pt) ** self.gamma) * ce).mean()
 
 
 # ── Device setup ─────────────────────────────────────────
@@ -248,7 +261,7 @@ def _train_epoch(model, loader, optimizer, scaler, scheduler, criterion, device,
                 kwargs["token_type_ids"] = ttids
             out    = model(**kwargs)
             logits = out.logits if hasattr(out, "logits") else out
-            loss   = criterion(logits, labels) / grad_accum
+            loss   = criterion(logits.float(), labels) / grad_accum
 
         scaler.scale(loss).backward()
         total_loss += loss.item() * grad_accum
@@ -338,6 +351,10 @@ def _run(config, exp_name, out_dir, config_path, notes):
     warmup_ratio    = p.get("warmup_ratio", 0.1)
     weight_decay    = p.get("weight_decay", 0.01)
     fp16            = p.get("fp16", True)
+    loss_fn                  = p.get("loss_fn", "cross_entropy")   # "cross_entropy" | "focal"
+    focal_gamma              = p.get("focal_gamma", 2.0)
+    early_stopping_patience  = p.get("early_stopping_patience", None)  # None = disabled
+    label_smoothing          = p.get("label_smoothing", 0.0)           # 0.0 = disabled
 
     gpu_cfg = config.get("gpu", "all")
 
@@ -367,7 +384,10 @@ def _run(config, exp_name, out_dir, config_path, notes):
     print(f"done  ({len(df):,} rows, {n_folds} folds)")
 
     cw = _class_weights(df["target"].values).to(device)
-    criterion = nn.CrossEntropyLoss(weight=cw)
+    if loss_fn == "focal":
+        criterion = _FocalLoss(gamma=focal_gamma, weight=cw)
+    else:
+        criterion = nn.CrossEntropyLoss(weight=cw, label_smoothing=label_smoothing)
 
     # ── Tokenize once upfront ────────────────────────────
     print(f"Tokenizing with '{pretrained}'...", end=" ", flush=True)
@@ -377,9 +397,10 @@ def _run(config, exp_name, out_dir, config_path, notes):
     )
     print("done")
 
-    oof_probs = np.zeros((len(df), N_CLASSES))
-    fold_f1s  = []
-    global_epoch = 0  # monotonically increasing across all folds for wandb x-axis
+    oof_probs        = np.zeros((len(df), N_CLASSES))
+    fold_f1s         = []
+    fold_best_epochs = []
+    global_epoch     = 0  # monotonically increasing across all folds for wandb x-axis
 
     # ── OOF cross-validation ──────────────────────────────
     fold_bar = tqdm(range(n_folds), desc="CV folds", unit="fold", ncols=72)
@@ -413,6 +434,8 @@ def _run(config, exp_name, out_dir, config_path, notes):
 
         best_f1    = -1.0
         best_probs = None
+        best_epoch = 0
+        no_improve = 0
 
         for epoch in range(n_epochs):
             global_epoch += 1
@@ -438,10 +461,19 @@ def _run(config, exp_name, out_dir, config_path, notes):
             if ep_f1 > best_f1:
                 best_f1    = ep_f1
                 best_probs = val_probs.copy()
+                best_epoch = epoch + 1
+                no_improve = 0
+            else:
+                no_improve += 1
+                if early_stopping_patience is not None and no_improve >= early_stopping_patience:
+                    tqdm.write(f"  early stop fold {fold+1} at epoch {epoch+1} "
+                               f"(no improvement for {early_stopping_patience} epochs)")
+                    break
 
         for i, pos in enumerate(val_pos):
             oof_probs[pos] = best_probs[i]
         fold_f1s.append(best_f1)
+        fold_best_epochs.append(best_epoch)
 
         if wb_run:
             wb_run.log({"fold_best_f1": best_f1, "fold": fold + 1})
@@ -483,7 +515,11 @@ def _run(config, exp_name, out_dir, config_path, notes):
             wb_run.summary["oof/macro_f1_tuned"] = tuned_metrics["macro_f1"]
 
     # ── Retrain on full data ──────────────────────────────
-    print("\n--- Retraining on full data ---")
+    # Use mean best epoch from OOF (not fixed n_epochs) so the submission
+    # model is trained for the same number of epochs that OOF validated.
+    retrain_epochs = max(1, round(sum(fold_best_epochs) / n_folds))
+    print(f"\n--- Retraining on full data ({retrain_epochs} epochs, "
+          f"mean of OOF best epochs {fold_best_epochs}) ---")
     full_loader = DataLoader(full_ds, batch_size=batch_size, shuffle=True,
                              num_workers=4, pin_memory=True)
 
@@ -492,7 +528,7 @@ def _run(config, exp_name, out_dir, config_path, notes):
     if len(gpu_ids) > 1:
         model = nn.DataParallel(model, device_ids=gpu_ids)
 
-    total_steps  = max(1, len(full_loader) // grad_accum) * n_epochs
+    total_steps  = max(1, len(full_loader) // grad_accum) * retrain_epochs
     warmup_steps = max(1, int(total_steps * warmup_ratio))
     base         = model.module if hasattr(model, "module") else model
     optimizer    = torch.optim.AdamW(base.parameters(), lr=lr, weight_decay=weight_decay)
@@ -501,7 +537,7 @@ def _run(config, exp_name, out_dir, config_path, notes):
     )
     scaler = GradScaler(enabled=use_amp)
 
-    for epoch in tqdm(range(n_epochs), desc="Full retrain", unit="ep", ncols=70):
+    for epoch in tqdm(range(retrain_epochs), desc="Full retrain", unit="ep", ncols=70):
         _train_epoch(model, full_loader, optimizer, scaler, scheduler,
                      criterion, device, grad_accum)
 
