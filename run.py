@@ -34,19 +34,38 @@ def _load_config(config_path: str) -> dict:
         return yaml.safe_load(f)
 
 
+def _is_transformer(config: dict) -> bool:
+    from src.models.transformer import TRANSFORMER_TYPES
+    return config.get("model", {}).get("type", "") in TRANSFORMER_TYPES
+
+
 def cmd_train(config_path: str, notes: str = None):
-    from src.train import run_training
-    run_training(config_path, notes_override=notes)
+    config = _load_config(config_path)
+    if _is_transformer(config):
+        from src.train_transformer import run_training_transformer
+        run_training_transformer(config_path, notes_override=notes)
+    else:
+        from src.train import run_training
+        run_training(config_path, notes_override=notes)
 
 
 def cmd_predict(config_path: str):
-    from src.predict import run_predict
-    config = _load_config(config_path)
+    config  = _load_config(config_path)
     exp_dir = os.path.join("experiments", config["experiment_name"])
-    if not os.path.exists(os.path.join(exp_dir, "model.pkl")):
-        print(f"No trained model found in {exp_dir}/. Run with --train first.")
-        sys.exit(1)
-    run_predict(exp_dir)
+
+    if _is_transformer(config):
+        model_dir = os.path.join(exp_dir, "model")
+        if not os.path.isdir(model_dir):
+            print(f"No trained model found in {model_dir}/. Run with --train first.")
+            sys.exit(1)
+        from src.predict import run_predict_transformer
+        run_predict_transformer(exp_dir)
+    else:
+        if not os.path.exists(os.path.join(exp_dir, "model.pkl")):
+            print(f"No trained model found in {exp_dir}/. Run with --train first.")
+            sys.exit(1)
+        from src.predict import run_predict
+        run_predict(exp_dir)
 
 
 def cmd_notebook(config_path: str):
