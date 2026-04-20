@@ -3,11 +3,14 @@ Data loading and fold creation.
 Handles both local and Kaggle runtime paths automatically.
 """
 import os
+from pathlib import Path
+
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold
 
-# Searched in order — first match wins
+# Searched in order - first match wins
 _DATA_DIRS = [
+    "/kaggle/input/competitions/spr-2026-mammography-report-classification",
     "/kaggle/input/spr-2026-mammography-report-classification",
     "./spr-2026-mammography-report-classification",
     "../spr-2026-mammography-report-classification",
@@ -16,19 +19,31 @@ _DATA_DIRS = [
 
 
 def find_data_dir() -> str:
-    for d in _DATA_DIRS:
-        if os.path.exists(os.path.join(d, "train.csv")):
-            return d
+    env_data_dir = os.getenv("SPR2026_DATA_DIR")
+    if env_data_dir:
+        env_path = Path(env_data_dir)
+        if (env_path / "train.csv").exists():
+            return str(env_path)
+
+    tried = []
+    for data_dir in _DATA_DIRS:
+        train_path = Path(data_dir) / "train.csv"
+        tried.append(str(train_path))
+        if train_path.exists():
+            return str(Path(data_dir))
+
     raise FileNotFoundError(
-        f"Could not find data directory. Tried: {_DATA_DIRS}\n"
-        "Place the competition data in ./spr-2026-mammography-report-classification/"
+        "Could not find data directory. Checked these train.csv paths:\n"
+        + "\n".join(f"- {path}" for path in tried)
+        + "\nSet SPR2026_DATA_DIR or place the competition data in "
+        "./spr-2026-mammography-report-classification/."
     )
 
 
 def load_train(data_dir: str = None) -> pd.DataFrame:
     if data_dir is None:
         data_dir = find_data_dir()
-    df = pd.read_csv(os.path.join(data_dir, "train.csv"))
+    df = pd.read_csv(Path(data_dir) / "train.csv")
     df.columns = df.columns.str.strip()
     df["target"] = df["target"].astype(int)
     return df
@@ -37,11 +52,11 @@ def load_train(data_dir: str = None) -> pd.DataFrame:
 def load_test(data_dir: str = None) -> pd.DataFrame:
     if data_dir is None:
         data_dir = find_data_dir()
-    path = os.path.join(data_dir, "test.csv")
-    if not os.path.exists(path):
+    path = Path(data_dir) / "test.csv"
+    if not path.exists():
         raise FileNotFoundError(
             f"test.csv not found at {path}.\n"
-            "This is expected locally — it only exists in the Kaggle evaluation runtime."
+            "This is expected locally - it only exists in the Kaggle evaluation runtime."
         )
     df = pd.read_csv(path)
     df.columns = df.columns.str.strip()

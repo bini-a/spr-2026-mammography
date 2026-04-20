@@ -32,17 +32,21 @@ data:
 model:
   type: transformer                                      # triggers GPU training loop
   pretrained: neuralmind/bert-base-portuguese-cased      # HuggingFace model ID
-  max_length: 512                                        # truncate to this many tokens
+  max_length: 256                                        # p99 of training set is 181 tokens — 256 covers all data with no truncation
 
   params:
     epochs: 5
-    batch_size: 32                  # per-GPU batch; total = batch_size × n_gpus
-    eval_batch_size: 64
+    batch_size: 64                  # 256 tokens vs 512 frees ~4× attention memory; doubling batch is conservative
+    eval_batch_size: 128
     gradient_accumulation_steps: 1
     learning_rate: 2.0e-5
     warmup_ratio: 0.1               # fraction of total steps used for warmup
     weight_decay: 0.01
     fp16: true                      # mixed precision — disable only if you see NaN losses
+    # loss_fn: cross_entropy        # "cross_entropy" (default) or "focal"
+    # focal_gamma: 2.0              # only used when loss_fn: focal
+    # early_stopping_patience: 2   # stop fold if val macro-F1 doesn't improve for N epochs (default: disabled)
+    # label_smoothing: 0.1         # soften one-hot targets to reduce overconfidence on noisy labels (default: 0.0)
 
 threshold:
   enabled: false   # set true to run OOF threshold tuning after training

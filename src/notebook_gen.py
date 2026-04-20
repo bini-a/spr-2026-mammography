@@ -11,7 +11,7 @@ Usage (via run.py):
 import json
 import os
 
-# src/ files to embed, in import-dependency order
+# src/ files for sklearn/GBM experiments
 _SRC_FILES = [
     "src/__init__.py",
     "src/data.py",
@@ -22,6 +22,20 @@ _SRC_FILES = [
     "src/models/__init__.py",
     "src/models/linear.py",
     "src/train.py",
+    "src/predict.py",
+]
+
+# src/ files for transformer experiments (import-dependency order)
+_TRANSFORMER_SRC_FILES = [
+    "src/__init__.py",
+    "src/data.py",
+    "src/features.py",
+    "src/evaluate.py",
+    "src/threshold.py",
+    "src/logging_utils.py",
+    "src/models/__init__.py",
+    "src/models/transformer.py",
+    "src/train_transformer.py",
     "src/predict.py",
 ]
 
@@ -156,3 +170,320 @@ def generate_notebook(exp_dir: str) -> str:
         json.dump(notebook, f, indent=1)
 
     return out_path
+
+
+def generate_inference_notebook(exp_dir: str, kaggle_dataset_slug: str) -> str:
+    """
+    Generate a fast inference-only Kaggle notebook.
+
+    Loads the pre-trained model from a Kaggle dataset (no retraining),
+    runs predict on the hidden test.csv, writes submission.csv.
+    Completes in ~5 minutes vs 2-3h for a training notebook.
+
+    Args:
+        exp_dir: path to the trained experiment directory
+        kaggle_dataset_slug: Kaggle dataset slug, e.g. 'username/exp010-bertimbau-es'
+                             The dataset must contain the model/ files + thresholds.npy
+    """
+    model_dir = os.path.join(exp_dir, "model")
+    if not os.path.isdir(model_dir):
+        raise FileNotFoundError(f"No trained model at {model_dir}. Run --train first.")
+
+    config_path = os.path.join(exp_dir, "config.yaml")
+    import yaml
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    exp_name   = config.get("experiment_name", os.path.basename(exp_dir))
+    notes      = config.get("notes", "")
+    max_length = config.get("model", {}).get("max_length", 512)
+    pretrained = config["model"]["pretrained"]
+
+    # dataset mount path on Kaggle: /kaggle/input/<dataset-name>/
+    dataset_name = kaggle_dataset_slug.split("/")[-1]
+    dataset_mount = f"/kaggle/input/{dataset_name}"
+
+    # ── Cell 0: header ───────────────────────────────────────────────────────
+    cell0 = _cell("\n".join([
+        f"# {exp_name} — inference only",
+        "",
+        f"**Notes:** {notes}" if notes else "",
+        "",
+        "Inference-only submission notebook — loads pre-trained weights, no retraining.",
+        "Runs in ~5 minutes.",
+        "",
+        "## Setup checklist",
+        "1. **Accelerator**: GPU T4×1 (or CPU — inference is fast)",
+        "2. **Internet**: Off",
+        "3. **Dataset**: attach `spr-2026-mammography-report-classification` competition data",
+        f"4. **Model dataset**: attach `{kaggle_dataset_slug}` (your uploaded model weights)",
+    ]), cell_type="markdown")
+
+    # ── Cell 1: install deps ─────────────────────────────────────────────────
+    cell1 = _cell(
+        "import subprocess, sys\n"
+        "subprocess.check_call([\n"
+        "    sys.executable, '-m', 'pip', 'install', '-q',\n"
+        "    'transformers>=4.40', 'sentencepiece>=0.1.99',\n"
+        "    'pyyaml>=6.0', 'pandas>=2.0', 'numpy>=1.24',\n"
+        "])\n"
+    )
+
+    # ── Cell 2: mkdir + write minimal src files needed for inference ─────────
+    mkdir_cell = _cell(
+        "import os\n"
+        "os.makedirs('src/models', exist_ok=True)\n"
+    )
+
+    inference_src_files = [
+        "src/__init__.py",
+        "src/data.py",
+        "src/features.py",
+        "src/models/__init__.py",
+        "src/models/transformer.py",
+        "src/train_transformer.py",  # needed for _TextDataset
+    ]
+    src_cells = [_writefile_cell(p) for p in inference_src_files if os.path.exists(p)]
+
+    # ── Cell 3: inference ────────────────────────────────────────────────────
+    infer_cell = _cell(
+        "import os\n"
+        "import numpy as np\n"
+        "import pandas as pd\n"
+        "import torch\n"
+        "from torch.amp import autocast\n"
+        "from torch.utils.data import DataLoader\n"
+        "from src.data import load_test\n"
+        "from src.features import clean_text\n"
+        "from src.models.transformer import load_model as load_transformer\n"
+        "from src.train_transformer import _TextDataset\n"
+        "\n"
+        "# Auto-detect uploaded model by scanning /kaggle/input/ for config.json\n"
+        "def _find_uploaded_model():\n"
+        "    import os\n"
+        "    for root, dirs, files in os.walk('/kaggle/input'):\n"
+        "        if 'config.json' in files and any(\n"
+        "            f in files for f in ['model.safetensors', 'pytorch_model.bin']\n"
+        "        ):\n"
+        "            print(f'Found model at: {root}')\n"
+        "            return root\n"
+        "    raise FileNotFoundError('No model files found under /kaggle/input — did you attach the dataset?')\n"
+        "\n"
+        "DATASET_MOUNT = _find_uploaded_model()\n"
+        f"MAX_LENGTH    = {max_length}\n"
+        "\n"
+        "# Load test data\n"
+        "test = load_test()\n"
+        "test['text'] = test['report'].apply(clean_text)\n"
+        "print(f'Test rows: {len(test)}')\n"
+        "\n"
+        "# Load model from Kaggle dataset\n"
+        "model, tokenizer = load_transformer(DATASET_MOUNT)\n"
+        "device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n"
+        "print(f'Device: {device}')\n"
+        "model = model.to(device).eval()\n"
+        "\n"
+        "# Tokenize and predict\n"
+        "ds     = _TextDataset(test['text'].tolist(), tokenizer, MAX_LENGTH)\n"
+        "loader = DataLoader(ds, batch_size=128, shuffle=False, num_workers=2)\n"
+        "\n"
+        "all_probs = []\n"
+        "with torch.no_grad():\n"
+        "    for batch in loader:\n"
+        "        ids  = batch['input_ids'].to(device)\n"
+        "        mask = batch['attention_mask'].to(device)\n"
+        "        ttids = batch.get('token_type_ids')\n"
+        "        kwargs = {'input_ids': ids, 'attention_mask': mask}\n"
+        "        if ttids is not None:\n"
+        "            kwargs['token_type_ids'] = ttids.to(device)\n"
+        "        with autocast(device_type='cuda', enabled=torch.cuda.is_available()):\n"
+        "            out = model(**kwargs)\n"
+        "        all_probs.append(torch.softmax(out.logits.float(), dim=-1).cpu().numpy())\n"
+        "\n"
+        "prob_matrix = np.concatenate(all_probs, axis=0)\n"
+        "\n"
+        "# Apply saved threshold offsets if present\n"
+        f"threshold_path = os.path.join(DATASET_MOUNT, 'thresholds.npy')\n"
+        "if os.path.exists(threshold_path):\n"
+        "    offsets = np.load(threshold_path)\n"
+        "    preds = np.argmax(prob_matrix + offsets, axis=1)\n"
+        "    print('Applied threshold offsets.')\n"
+        "else:\n"
+        "    preds = np.argmax(prob_matrix, axis=1)\n"
+        "    print('No thresholds found — using argmax.')\n"
+        "\n"
+        "sub = pd.DataFrame({'ID': test['ID'], 'target': preds})\n"
+        "sub.to_csv('submission.csv', index=False)\n"
+        "print(f'submission.csv written: {len(sub)} rows')\n"
+        "print(sub['target'].value_counts().sort_index().to_string())\n"
+    )
+
+    # ── Cell 4: validate ─────────────────────────────────────────────────────
+    validate_cell = _cell(
+        "import pandas as pd\n"
+        "sub = pd.read_csv('submission.csv')\n"
+        "assert {'ID', 'target'}.issubset(sub.columns)\n"
+        "assert sub['target'].between(0, 6).all(), 'Targets out of range'\n"
+        "print(f'submission.csv: {len(sub)} rows')\n"
+        "sub.head()\n"
+    )
+
+    cells = [cell0, cell1, mkdir_cell] + src_cells + [infer_cell, validate_cell]
+    out_path = os.path.join(exp_dir, "notebook_inference.ipynb")
+    return _make_notebook(cells, out_path)
+
+
+def _make_notebook(cells: list, out_path: str) -> str:
+    notebook = {
+        "nbformat": 4,
+        "nbformat_minor": 5,
+        "metadata": {
+            "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+            "language_info": {"name": "python", "version": "3.10.0"},
+        },
+        "cells": cells,
+    }
+    with open(out_path, "w") as f:
+        json.dump(notebook, f, indent=1)
+    return out_path
+
+
+def generate_transformer_notebook(exp_dir: str) -> str:
+    """
+    Generate a self-contained Kaggle training notebook for a transformer experiment.
+
+    The notebook trains from scratch on Kaggle GPU using the saved config.
+    BERTimbau (and other HuggingFace models) must be attached via Kaggle Models hub
+    — see the instruction cell inside the notebook.
+
+    Raises FileNotFoundError if the experiment hasn't been trained yet.
+    """
+    model_dir = os.path.join(exp_dir, "model")
+    if not os.path.isdir(model_dir):
+        raise FileNotFoundError(
+            f"No trained transformer model found at {model_dir}. "
+            "Run training first: python run.py configs/<name>.yaml --train"
+        )
+
+    config_path = os.path.join(exp_dir, "config.yaml")
+    import yaml
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    exp_name  = config.get("experiment_name", os.path.basename(exp_dir))
+    notes     = config.get("notes", "")
+    pretrained = config["model"]["pretrained"]
+
+    # ── Cell 0: markdown header ──────────────────────────────────────────────
+    cell0 = _cell("\n".join([
+        f"# {exp_name}",
+        "",
+        f"**Notes:** {notes}" if notes else "",
+        "",
+        "Auto-generated Kaggle submission notebook for a transformer experiment.",
+        "Trains from scratch on Kaggle GPU and writes `submission.csv`.",
+        "",
+        "## Setup checklist",
+        "1. **Accelerator**: GPU T4×2 (or P100) — *Notebook settings → Accelerator*",
+        "2. **Internet**: Off at submission time",
+        "3. **Dataset**: attach `spr-2026-mammography-report-classification` competition data",
+        f"4. **Model weights**: attach `{pretrained}` via *Add-ons → Models*",
+        "   - Search the Kaggle Models hub for the model name",
+        "   - Update `PRETRAINED_PATH` in the config cell below to the mount path",
+        "   - Local HuggingFace ID works when internet is ON (testing only)",
+    ]), cell_type="markdown")
+
+    # ── Cell 1: install deps ─────────────────────────────────────────────────
+    cell1 = _cell(
+        "import subprocess, sys\n"
+        "subprocess.check_call([\n"
+        "    sys.executable, '-m', 'pip', 'install', '-q',\n"
+        "    'transformers>=4.40', 'accelerate>=0.27', 'sentencepiece>=0.1.99',\n"
+        "    'pyyaml>=6.0', 'tqdm>=4.65', 'scikit-learn>=1.3',\n"
+        "    'pandas>=2.0', 'numpy>=1.24',\n"
+        "])\n"
+    )
+
+    # ── Cell 2: mkdir ────────────────────────────────────────────────────────
+    mkdir_cell = _cell(
+        "import os\n"
+        "os.makedirs('src/models', exist_ok=True)\n"
+        "os.makedirs('configs', exist_ok=True)\n"
+        "os.makedirs('experiments', exist_ok=True)\n"
+    )
+
+    # ── Cells 3–N: embed src/ files ──────────────────────────────────────────
+    src_cells = [
+        _writefile_cell(p) for p in _TRANSFORMER_SRC_FILES if os.path.exists(p)
+    ]
+
+    # ── Config cell: write config, with pretrained path instruction ──────────
+    import copy
+    kaggle_config = copy.deepcopy(config)
+    kaggle_config["wandb"] = {"enabled": False}   # no W&B credentials on Kaggle
+    kaggle_config["gpu"] = "all"                   # use both T4s
+
+    config_str = yaml.dump(kaggle_config, default_flow_style=False, sort_keys=False)
+    config_dest = f"configs/{exp_name}.yaml"
+
+    # Write config via %%writefile (no escaping issues), then patch pretrained path
+    writefile_config_cell = _cell(f"%%writefile {config_dest}\n{config_str}")
+
+    config_cell = _cell(
+        "# ── Model path ──────────────────────────────────────────────────────\n"
+        "# Auto-detects the correct subdirectory containing config.json.\n"
+        "# Falls back to HuggingFace ID when internet is ON (local testing).\n"
+        "import os\n"
+        "\n"
+        "_KAGGLE_MODEL_ROOT = '/kaggle/input/models/caokhoihuynh/bert-base-portuguese-cased/pytorch/default/1'\n"
+        f"_HF_ID = {pretrained!r}\n"
+        "\n"
+        "def _find_model_path(root, hf_id):\n"
+        "    \"\"\"Walk root to find the dir containing config.json; fall back to hf_id.\"\"\"\n"
+        "    if os.path.isdir(root):\n"
+        "        for dirpath, _, files in os.walk(root):\n"
+        "            if 'config.json' in files:\n"
+        "                print(f'Found model at: {dirpath}')\n"
+        "                return dirpath\n"
+        "        print(f'WARNING: config.json not found under {root}, using HF id')\n"
+        "    return hf_id\n"
+        "\n"
+        "PRETRAINED_PATH = _find_model_path(_KAGGLE_MODEL_ROOT, _HF_ID)\n"
+        "print(f'PRETRAINED_PATH = {PRETRAINED_PATH}')\n"
+        "\n"
+        "import yaml\n"
+        f"with open({config_dest!r}) as f:\n"
+        "    config = yaml.safe_load(f)\n"
+        "config['model']['pretrained'] = PRETRAINED_PATH\n"
+        f"with open({config_dest!r}, 'w') as f:\n"
+        "    yaml.dump(config, f, default_flow_style=False, sort_keys=False)\n"
+        f"print('Config written →', {config_dest!r})\n"
+    )
+
+    # ── Training + prediction cell ───────────────────────────────────────────
+    train_cell = _cell(
+        "import os, shutil\n"
+        "from src.train_transformer import run_training_transformer\n"
+        "from src.predict import run_predict_transformer\n"
+        "\n"
+        f"exp_dir = run_training_transformer({config_dest!r})\n"
+        "run_predict_transformer(exp_dir)\n"
+        "\n"
+        "shutil.copy(os.path.join(exp_dir, 'submission.csv'), 'submission.csv')\n"
+        "print('submission.csv ready at', os.getcwd())\n"
+    )
+
+    # ── Validation cell ──────────────────────────────────────────────────────
+    validate_cell = _cell(
+        "import pandas as pd\n"
+        "sub = pd.read_csv('submission.csv')\n"
+        "assert {'ID', 'target'}.issubset(sub.columns)\n"
+        "assert sub['target'].between(0, 6).all(), 'Targets out of range'\n"
+        "print(f'submission.csv: {len(sub)} rows')\n"
+        "print(sub['target'].value_counts().sort_index().to_string())\n"
+        "sub.head()\n"
+    )
+
+    cells = [cell0, cell1, mkdir_cell] + src_cells + [writefile_config_cell, config_cell, train_cell, validate_cell]
+    out_path = os.path.join(exp_dir, "notebook.ipynb")
+    return _make_notebook(cells, out_path)

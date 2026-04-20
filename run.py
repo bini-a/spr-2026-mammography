@@ -69,13 +69,23 @@ def cmd_predict(config_path: str):
 
 
 def cmd_notebook(config_path: str):
-    from src.notebook_gen import generate_notebook
-    config = _load_config(config_path)
+    config  = _load_config(config_path)
     exp_dir = os.path.join("experiments", config["experiment_name"])
-    if not os.path.exists(os.path.join(exp_dir, "model.pkl")):
-        print(f"No trained model found in {exp_dir}/. Run with --train first.")
-        sys.exit(1)
-    out = generate_notebook(exp_dir)
+    model_type = config.get("model", {}).get("type", "")
+
+    if model_type in ("transformer", "bert", "xlmr"):
+        from src.notebook_gen import generate_transformer_notebook
+        if not os.path.isdir(os.path.join(exp_dir, "model")):
+            print(f"No trained transformer model found in {exp_dir}/model/. Run --train first.")
+            sys.exit(1)
+        out = generate_transformer_notebook(exp_dir)
+    else:
+        from src.notebook_gen import generate_notebook
+        if not os.path.exists(os.path.join(exp_dir, "model.pkl")):
+            print(f"No trained model found in {exp_dir}/. Run --train first.")
+            sys.exit(1)
+        out = generate_notebook(exp_dir)
+
     print(f"Notebook written → {out}")
 
 
@@ -116,7 +126,10 @@ def main():
     parser.add_argument("--notes",   default=None, metavar="TEXT",
                         help="Freeform note for this run (overrides config notes field)")
     parser.add_argument("--notebook", action="store_true",
-                        help="Generate a Kaggle submission notebook (requires trained model)")
+                        help="Generate a Kaggle training notebook (requires trained model)")
+    parser.add_argument("--notebook-inference", metavar="DATASET_SLUG",
+                        help="Generate a fast inference-only notebook; pass Kaggle dataset slug, "
+                             "e.g. 'yourusername/exp010-bertimbau-es'")
     parser.add_argument("--rerun",   metavar="EXP_NAME",
                         help="Re-run a past experiment from its saved config snapshot")
     args = parser.parse_args()
@@ -130,7 +143,13 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    if args.notebook:
+    if getattr(args, 'notebook_inference', None):
+        from src.notebook_gen import generate_inference_notebook
+        config  = _load_config(config_path)
+        exp_dir = os.path.join("experiments", config["experiment_name"])
+        out = generate_inference_notebook(exp_dir, args.notebook_inference)
+        print(f"Inference notebook written → {out}")
+    elif args.notebook:
         cmd_notebook(config_path)
     elif args.train:
         cmd_train(config_path, notes=args.notes)
