@@ -30,4 +30,5 @@ experiments/*/experiments/
 *.pt
 *.pkl
 *.h5
+*.npy
 outputs/
