@@ -1,0 +1,28 @@
+[log] 2026-04-28 16:24:24  →  experiments/exp046_awp/train.log
+
+=======================================================
+Experiment : exp046_awp
+Config     : configs/exp046_awp.yaml
+Started    : 2026-04-28 16:24:24
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base + Adversarial Weight Perturbation (AWP). AWP perturbs model weights in the gradient direction between the standard backward pass and optimizer step, forcing the model to learn robust representations near decision boundaries. Critical for c4/c5 boundary which is our hardest confusion. All other settings identical to exp023. Expected +0.005-0.015 OOF.
+AWP        : adv_lr=0.0001  adv_eps=0.001  start_epoch=1
+=======================================================
+[log] 2026-04-28 16:25:40  →  experiments/exp046_awp/train.log
+
+=======================================================
+Experiment : exp046_awp
+Config     : configs/exp046_awp.yaml
+Started    : 2026-04-28 16:25:40
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base + Adversarial Weight Perturbation (AWP). AWP perturbs model weights in the gradient direction between the standard backward pass and optimizer step, forcing the model to learn robust representations near decision boundaries. Critical for c4/c5 boundary which is our hardest confusion. All other settings identical to exp023. Expected +0.005-0.015 OOF.
+AWP        : adv_lr=0.0001  adv_eps=0.001  start_epoch=1
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/fgw3ybsn
+Loading data... done  (18,272 real rows → 9,131 unique real texts for training, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+  early stop fold 2 at epoch 7 (no improvement for 2 epochs)
+  early stop fold 3 at epoch 7 (no improvement for 2 epochs)

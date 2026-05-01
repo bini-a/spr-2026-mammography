@@ -1,0 +1,81 @@
+[log] 2026-04-28 15:36:29  →  experiments/exp045_rdrop/train.log
+
+=======================================================
+Experiment : exp045_rdrop
+Config     : configs/exp045_rdrop.yaml
+Started    : 2026-04-28 15:36:29
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base + R-Drop regularization (α=1.0). R-Drop applies KL-divergence consistency loss between two dropout-different forward passes per batch, forcing calibrated predictions especially for rare classes c5/c6. All other settings identical to exp023_bertimbau_dedup (honest baseline). Expected +0.005-0.015 OOF from regularization.
+R-Drop α   : 1.0
+=======================================================
+No GPU available — running on CPU
+wandb init failed (wandb-core exited with code 1) — continuing without tracking
+Loading data... done  (18,272 real rows → 9,131 unique real texts for training, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+[log] 2026-04-28 15:37:43  →  experiments/exp045_rdrop/train.log
+
+=======================================================
+Experiment : exp045_rdrop
+Config     : configs/exp045_rdrop.yaml
+Started    : 2026-04-28 15:37:43
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base + R-Drop regularization (α=1.0). R-Drop applies KL-divergence consistency loss between two dropout-different forward passes per batch, forcing calibrated predictions especially for rare classes c5/c6. All other settings identical to exp023_bertimbau_dedup (honest baseline). Expected +0.005-0.015 OOF from regularization.
+R-Drop α   : 1.0
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/3yf7294k
+Loading data... done  (18,272 real rows → 9,131 unique real texts for training, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+  early stop fold 1 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 2 at epoch 9 (no improvement for 2 epochs)
+  early stop fold 3 at epoch 9 (no improvement for 2 epochs)
+  early stop fold 4 at epoch 6 (no improvement for 2 epochs)
+  early stop fold 5 at epoch 9 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp045_rdrop
+=======================================================
+Macro F1: 0.7529
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.799  0.767  0.834    610
+1         0.924  0.868  0.987    693
+2         0.975  0.993  0.958  15968
+3         0.592  0.486  0.755    713
+4         0.654  0.654  0.654    214
+5         0.633  0.613  0.655     29
+6         0.693  0.625  0.778     45
+
+Fold F1s : [0.7375, 0.728, 0.7457, 0.7313, 0.7641]
+Mean ± σ : 0.7413 ± 0.0129
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7529
+Threshold tuning best macro F1:     0.7582
+Offsets: {0: np.float64(0.0961), 1: np.float64(-0.132), 2: np.float64(0.2729), 3: np.float64(0.1427), 4: np.float64(0.0326), 5: np.float64(0.067), 6: np.float64(-0.0482)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7582
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.798  0.773  0.825    610
+1         0.930  0.881  0.984    693
+2         0.977  0.991  0.963  15968
+3         0.600  0.504  0.741    713
+4         0.656  0.672  0.640    214
+5         0.633  0.613  0.655     29
+6         0.714  0.660  0.778     45
+
+
+--- Retraining on full data (7 epochs, mean of OOF best epochs [8, 7, 7, 4, 7]) ---
+Model saved → experiments/exp045_rdrop/model/
+
+Duration   : 1829s  (30.5m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp045_rdrop/

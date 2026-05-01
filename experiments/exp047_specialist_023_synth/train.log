@@ -1,0 +1,67 @@
+[log] 2026-04-28 15:37:47  →  experiments/exp047_specialist_023_synth/train.log
+
+=======================================================
+Experiment : exp047_specialist_023_synth
+Config     : configs/exp047_specialist_023_synth.yaml
+Started    : 2026-04-28 15:37:47
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : Full 7-class BERTimbau trained with synthetic {0,3} augmentation only. Used as a c023-specialist in reranking (p0/p2/p3 columns only). Targets the 0/2/3 boundary without label_subset so it stays trainer-compatible.
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/7ba5f2w1
+Loading data... done  (18,272 real rows → 9,131 unique real texts + 1,296 synthetic for training, 5 folds)
+Synthetic classes: [0, 3]
+Synthetic loss weight: 0.5
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+  early stop fold 1 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 2 at epoch 7 (no improvement for 2 epochs)
+  early stop fold 3 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 4 at epoch 7 (no improvement for 2 epochs)
+  early stop fold 5 at epoch 9 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp047_specialist_023_synth
+=======================================================
+Macro F1: 0.7394
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.794  0.736  0.861    610
+1         0.927  0.875  0.987    693
+2         0.978  0.991  0.966  15968
+3         0.604  0.538  0.689    713
+4         0.662  0.675  0.650    214
+5         0.531  0.486  0.586     29
+6         0.679  0.590  0.800     45
+
+Fold F1s : [0.749, 0.6962, 0.7367, 0.7085, 0.7752]
+Mean ± σ : 0.7331 ± 0.0283
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7394
+Threshold tuning best macro F1:     0.7467
+Offsets: {0: np.float64(-0.1504), 1: np.float64(-0.0538), 2: np.float64(0.1533), 3: np.float64(-0.1627), 4: np.float64(-0.2538), 5: np.float64(-0.1261), 6: np.float64(-0.2033)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7467
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.799  0.751  0.854    610
+1         0.930  0.880  0.986    693
+2         0.980  0.988  0.972  15968
+3         0.613  0.579  0.652    713
+4         0.658  0.694  0.626    214
+5         0.545  0.486  0.621     29
+6         0.701  0.654  0.756     45
+
+
+--- Retraining on full data (7 epochs, mean of OOF best epochs [8, 5, 8, 5, 7]) ---
+Model saved → experiments/exp047_specialist_023_synth/model/
+
+Duration   : 1154s  (19.2m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp047_specialist_023_synth/

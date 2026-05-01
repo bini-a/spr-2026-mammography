@@ -1,0 +1,15 @@
+{
+  "experiment_name": "exp043_5seed_svc_w055",
+  "type": "ensemble",
+  "components": [
+    "exp042_5seed_ensemble",
+    "exp002_tfidf_svc"
+  ],
+  "weights": [
+    0.55,
+    0.45
+  ],
+  "seed": 42,
+  "threshold_n_iter": 2000,
+  "notes": ""
+}

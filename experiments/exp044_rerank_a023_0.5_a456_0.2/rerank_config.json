@@ -1,0 +1,12 @@
+{
+  "experiment_name": "exp044_rerank_a023_0.5_a456_0.2",
+  "type": "rerank",
+  "base": "exp043_5seed_svc_w050",
+  "spec023": "exp034a_023_specialist",
+  "spec456": "exp040_specialist_456_synth",
+  "alpha023": 0.5,
+  "alpha456": 0.2,
+  "threshold_n_iter": 2000,
+  "seed": 42,
+  "notes": ""
+}

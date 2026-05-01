@@ -1,0 +1,21 @@
+{
+  "experiment_name": "exp042_5seed_ensemble",
+  "type": "ensemble",
+  "components": [
+    "exp023_bertimbau_dedup",
+    "exp015a_bertimbau_seed7",
+    "exp015b_bertimbau_seed13",
+    "exp015c_bertimbau_seed21",
+    "exp041_bertimbau_seed99"
+  ],
+  "weights": [
+    0.2,
+    0.2,
+    0.2,
+    0.2,
+    0.2
+  ],
+  "seed": 42,
+  "threshold_n_iter": 2000,
+  "notes": ""
+}
