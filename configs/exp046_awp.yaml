@@ -1,0 +1,41 @@
+experiment_name: exp046_awp
+notes: "BERTimbau base + Adversarial Weight Perturbation (AWP). AWP perturbs model weights in the gradient direction between the standard backward pass and optimizer step, forcing the model to learn robust representations near decision boundaries. Critical for c4/c5 boundary which is our hardest confusion. All other settings identical to exp023. Expected +0.005-0.015 OOF."
+
+seed: 42
+
+gpu: 0  # local visible GPU index; batch launcher pins physical GPU 1 via CUDA_VISIBLE_DEVICES
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: neuralmind/bert-base-portuguese-cased
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+
+awp:
+  enabled: true
+  adv_lr: 0.0001
+  adv_eps: 0.001
+  start_epoch: 1
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [bertimbau, awp, adversarial]

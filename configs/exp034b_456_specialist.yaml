@@ -1,0 +1,39 @@
+experiment_name: exp034b_456_specialist
+notes: "Specialist BERTimbau model for the suspicious-severity confusion group {4,5,6}. Trains only on subset labels, emits full-row global-shaped OOF probabilities for reranking."
+
+seed: 42
+
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: neuralmind/bert-base-portuguese-cased
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+
+label_subset:
+  enabled: true
+  classes: [4, 5, 6]
+
+threshold:
+  enabled: false
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [bertimbau, specialist, rerank, 456]

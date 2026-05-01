@@ -1,0 +1,35 @@
+experiment_name: exp022_biobertpt_lr2e5
+notes: "BioBERTpt-all at lr=2e-5 (same as exp010 BERTimbau) — testing whether 1.5e-5 was under-training, especially on c6 (0.627 vs 0.778 in exp010)"
+
+seed: 42
+
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: pucpr/biobertpt-all
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [biobertpt, transformer, portuguese, clinical-pretraining, lr-sweep]

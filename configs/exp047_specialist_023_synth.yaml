@@ -1,0 +1,40 @@
+experiment_name: exp047_specialist_023_synth
+notes: "Full 7-class BERTimbau trained with synthetic {0,3} augmentation only. Used as a c023-specialist in reranking (p0/p2/p3 columns only). Targets the 0/2/3 boundary without label_subset so it stays trainer-compatible."
+
+seed: 42
+
+gpu: 0
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: neuralmind/bert-base-portuguese-cased
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+
+synthetic_augment:
+  enabled: true
+  classes: [0, 3]          # target the benign-boundary confusion classes only
+  loss_weight: 0.5         # keep synthetic rows helpful but subordinate to real data
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [bertimbau, synthetic, c023-specialist, boundary-classes]

@@ -1,0 +1,40 @@
+experiment_name: exp040_specialist_456_synth
+notes: "Full 7-class BERTimbau trained with synthetic {4,5,6} augmentation only. Used as a c456-specialist in reranking (p4/p5/p6 columns only). Addresses extreme sparsity of c5=29, c6=45 that limited exp034b. No label_subset — avoids trainer constraint."
+
+seed: 42
+
+gpu: 0
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: neuralmind/bert-base-portuguese-cased
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+
+synthetic_augment:
+  enabled: true
+  classes: [4, 5, 6]        # target only the suspicious/malignant classes
+  loss_weight: 0.5           # down-weight synthetic rows to avoid template dominance
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [bertimbau, synthetic, c456-specialist, rare-classes]
