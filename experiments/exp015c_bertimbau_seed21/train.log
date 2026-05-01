@@ -1,0 +1,63 @@
+[log] 2026-04-20 23:44:52  →  experiments/exp015c_bertimbau_seed21/train.log
+
+=======================================================
+Experiment : exp015c_bertimbau_seed21
+Config     : configs/exp015c_bertimbau_seed21.yaml
+Started    : 2026-04-20 23:44:52
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : Multi-seed run 3/3 — identical to exp010 (best config) but seed=21; averaged with seed7/seed13 to form exp015 multi-seed ensemble
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/jlbnn34q
+Loading data... done  (18,272 rows → 9,131 unique texts for training, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+  early stop fold 2 at epoch 9 (no improvement for 2 epochs)
+  early stop fold 3 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 4 at epoch 7 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp015c_bertimbau_seed21
+=======================================================
+Macro F1: 0.7302
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.787  0.740  0.841    610
+1         0.922  0.866  0.987    693
+2         0.973  0.992  0.954  15968
+3         0.559  0.457  0.718    713
+4         0.632  0.615  0.650    214
+5         0.559  0.487  0.655     29
+6         0.680  0.603  0.778     45
+
+Fold F1s : [0.7372, 0.7506, 0.7264, 0.7259, 0.6839]
+Mean ± σ : 0.7248 ± 0.0224
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7302
+Threshold tuning best macro F1:     0.7398
+Offsets: {0: np.float64(-0.1763), 1: np.float64(-0.0411), 2: np.float64(0.2902), 3: np.float64(-0.2393), 4: np.float64(0.0034), 5: np.float64(-0.273), 6: np.float64(0.0045)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7398
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.792  0.768  0.818    610
+1         0.926  0.874  0.984    693
+2         0.977  0.984  0.970  15968
+3         0.573  0.555  0.592    713
+4         0.661  0.621  0.706    214
+5         0.557  0.531  0.586     29
+6         0.692  0.610  0.800     45
+
+
+--- Retraining on full data (8 epochs, mean of OOF best epochs [10, 7, 8, 5, 10]) ---
+Model saved → experiments/exp015c_bertimbau_seed21/model/
+
+Duration   : 794s  (13.2m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp015c_bertimbau_seed21/

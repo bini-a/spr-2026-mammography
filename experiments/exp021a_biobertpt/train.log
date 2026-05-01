@@ -1,0 +1,63 @@
+[log] 2026-04-20 19:12:11  →  experiments/exp021a_biobertpt/train.log
+
+=======================================================
+Experiment : exp021a_biobertpt
+Config     : configs/exp021a_biobertpt.yaml
+Started    : 2026-04-20 19:12:11
+Git commit : a5c94a8
+Pretrained : pucpr/biobertpt-all
+Notes      : BioBERTpt-all (pucpr/biobertpt-all) — BERTimbau + clinical/biomedical continued pretraining (SciELO + Brazilian clinical records); baseline to test whether clinical PT-BR pretraining beats plain BERTimbau (exp010)
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/o01c41ic
+Loading data... done  (18,272 rows, 5 folds)
+Tokenizing with 'pucpr/biobertpt-all'... done
+  early stop fold 3 at epoch 9 (no improvement for 2 epochs)
+  early stop fold 4 at epoch 6 (no improvement for 2 epochs)
+  early stop fold 5 at epoch 6 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp021a_biobertpt
+=======================================================
+Macro F1: 0.7186
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.795  0.752  0.844    610
+1         0.931  0.885  0.981    693
+2         0.968  0.994  0.944  15968
+3         0.534  0.408  0.773    713
+4         0.658  0.639  0.678    214
+5         0.538  0.609  0.483     29
+6         0.606  0.516  0.733     45
+
+Fold F1s : [0.7154, 0.778, 0.7526, 0.6328, 0.7484]
+Mean ± σ : 0.7254 ± 0.0504
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7186
+Threshold tuning best macro F1:     0.7246
+Offsets: {0: np.float64(0.1476), 1: np.float64(0.05), 2: np.float64(0.2773), 3: np.float64(-0.0751), 4: np.float64(-0.1286), 5: np.float64(0.2212), 6: np.float64(-0.1658)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7246
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.796  0.748  0.851    610
+1         0.932  0.890  0.978    693
+2         0.972  0.993  0.951  15968
+3         0.555  0.441  0.748    713
+4         0.648  0.647  0.650    214
+5         0.542  0.533  0.552     29
+6         0.627  0.561  0.711     45
+
+
+--- Retraining on full data (7 epochs, mean of OOF best epochs [9, 9, 7, 4, 4]) ---
+Model saved → experiments/exp021a_biobertpt/model/
+
+Duration   : 1707s  (28.4m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp021a_biobertpt/

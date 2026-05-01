@@ -1,0 +1,17 @@
+{
+  "experiment_name": "exp014_ensemble_v1",
+  "type": "ensemble",
+  "components": [
+    "exp004_bertimbau",
+    "exp010_bertimbau_es",
+    "exp012_bertimbau_large_es"
+  ],
+  "weights": [
+    0.3333333333333333,
+    0.3333333333333333,
+    0.3333333333333333
+  ],
+  "seed": 42,
+  "threshold_n_iter": 2000,
+  "notes": ""
+}

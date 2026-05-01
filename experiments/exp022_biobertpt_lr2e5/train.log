@@ -1,0 +1,62 @@
+[log] 2026-04-20 20:33:05  →  experiments/exp022_biobertpt_lr2e5/train.log
+
+=======================================================
+Experiment : exp022_biobertpt_lr2e5
+Config     : configs/exp022_biobertpt_lr2e5.yaml
+Started    : 2026-04-20 20:33:05
+Git commit : a5c94a8
+Pretrained : pucpr/biobertpt-all
+Notes      : BioBERTpt-all at lr=2e-5 (same as exp010 BERTimbau) — testing whether 1.5e-5 was under-training, especially on c6 (0.627 vs 0.778 in exp010)
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/6l3f1e5t
+Loading data... done  (18,272 rows, 5 folds)
+Tokenizing with 'pucpr/biobertpt-all'... done
+  early stop fold 4 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 5 at epoch 10 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp022_biobertpt_lr2e5
+=======================================================
+Macro F1: 0.7550
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.808  0.799  0.816    610
+1         0.941  0.911  0.974    693
+2         0.980  0.990  0.970  15968
+3         0.625  0.543  0.735    713
+4         0.674  0.662  0.687    214
+5         0.554  0.500  0.621     29
+6         0.703  0.696  0.711     45
+
+Fold F1s : [0.7694, 0.75, 0.7813, 0.7206, 0.7404]
+Mean ± σ : 0.7524 ± 0.0214
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7550
+Threshold tuning best macro F1:     0.7611
+Offsets: {0: np.float64(0.0223), 1: np.float64(0.0521), 2: np.float64(0.1473), 3: np.float64(-0.041), 4: np.float64(-0.2235), 5: np.float64(-0.1297), 6: np.float64(-0.0822)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7611
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.806  0.796  0.815    610
+1         0.944  0.917  0.973    693
+2         0.981  0.990  0.972  15968
+3         0.629  0.553  0.729    713
+4         0.673  0.673  0.673    214
+5         0.585  0.528  0.655     29
+6         0.711  0.711  0.711     45
+
+
+--- Retraining on full data (9 epochs, mean of OOF best epochs [10, 10, 10, 8, 8]) ---
+Model saved → experiments/exp022_biobertpt_lr2e5/model/
+
+Duration   : 2099s  (35.0m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp022_biobertpt_lr2e5/

@@ -1,0 +1,65 @@
+[log] 2026-04-20 21:26:08  →  experiments/exp023_bertimbau_dedup/train.log
+
+=======================================================
+Experiment : exp023_bertimbau_dedup
+Config     : configs/exp023_bertimbau_dedup.yaml
+Started    : 2026-04-20 21:26:08
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base — honest re-run of exp010 with group-aware K-fold + dedup training (9131 unique texts). Establishes honest OOF baseline; previous exp010=0.765 was measured with leaky folds.
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/ycik9643
+Loading data... done  (18,272 rows → 9,131 unique texts for training, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+  early stop fold 1 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 2 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 3 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 4 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 5 at epoch 8 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp023_bertimbau_dedup
+=======================================================
+Macro F1: 0.7310
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.792  0.742  0.849    610
+1         0.927  0.875  0.986    693
+2         0.975  0.991  0.960  15968
+3         0.571  0.483  0.698    713
+4         0.657  0.665  0.650    214
+5         0.492  0.469  0.517     29
+6         0.703  0.696  0.711     45
+
+Fold F1s : [0.7287, 0.6899, 0.7348, 0.7124, 0.7491]
+Mean ± σ : 0.7230 ± 0.0203
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7310
+Threshold tuning best macro F1:     0.7429
+Offsets: {0: np.float64(0.1641), 1: np.float64(-0.2215), 2: np.float64(0.2819), 3: np.float64(-0.0277), 4: np.float64(-0.1584), 5: np.float64(-0.2559), 6: np.float64(-0.1981)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7429
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.799  0.735  0.875    610
+1         0.930  0.887  0.977    693
+2         0.978  0.987  0.968  15968
+3         0.582  0.529  0.647    713
+4         0.668  0.717  0.626    214
+5         0.508  0.500  0.517     29
+6         0.736  0.762  0.711     45
+
+
+--- Retraining on full data (8 epochs, mean of OOF best epochs [8, 8, 8, 8, 6]) ---
+Model saved → experiments/exp023_bertimbau_dedup/model/
+
+Duration   : 820s  (13.7m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp023_bertimbau_dedup/

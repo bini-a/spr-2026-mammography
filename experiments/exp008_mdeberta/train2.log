@@ -1,0 +1,279 @@
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /home/biniam/.netrc.
+wandb: Currently logged in as: biniamgaromsa to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: Tracking run with wandb version 0.26.0
+wandb: Run data is saved locally in /home/biniam/Documents/Projects/spr-2026-mammography/wandb/run-20260420_103833-gtwi0zom
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run exp008_mdeberta
+wandb: ⭐️ View project at https://wandb.ai/biniamgaromsa/spr-2026-mammography
+wandb: 🚀 View run at https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/gtwi0zom
+[log] 2026-04-20 10:38:32  →  experiments/exp008_mdeberta/train.log
+
+=======================================================
+Experiment : exp008_mdeberta
+Config     : configs/exp008_mdeberta.yaml
+Started    : 2026-04-20 10:38:32
+Git commit : 9fb24ba
+Pretrained : microsoft/mdeberta-v3-base
+Notes      : mDeBERTa-v3-base (microsoft/mdeberta-v3-base, 278M) — multilingual DeBERTa, disentangled attention + ELECTRA-style pretraining, CC-100 incl. PT-BR
+=======================================================
+GPUs : [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/gtwi0zom
+Loading data... done  (18,272 rows, 5 folds)
+Tokenizing with 'microsoft/mdeberta-v3-base'... Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/198 [00:00<?, ?it/s]Loading weights: 100%|██████████| 198/198 [00:00<00:00, 40572.19it/s]
+[1mDebertaV2ForSequenceClassification LOAD REPORT[0m from: microsoft/mdeberta-v3-base
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+mask_predictions.dense.bias                | UNEXPECTED | 
+lm_predictions.lm_head.bias                | UNEXPECTED | 
+lm_predictions.lm_head.dense.weight        | UNEXPECTED | 
+mask_predictions.LayerNorm.weight          | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.weight    | UNEXPECTED | 
+mask_predictions.LayerNorm.bias            | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.bias      | UNEXPECTED | 
+mask_predictions.classifier.weight         | UNEXPECTED | 
+lm_predictions.lm_head.dense.bias          | UNEXPECTED | 
+mask_predictions.dense.weight              | UNEXPECTED | 
+mask_predictions.classifier.bias           | UNEXPECTED | 
+deberta.embeddings.word_embeddings._weight | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+done
+CV folds:   0%|                                 | 0/5 [00:00<?, ?fold/s]
+Loading weights:   0%|          | 0/198 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 198/198 [00:00<00:00, 51109.13it/s]
+[1mDebertaV2ForSequenceClassification LOAD REPORT[0m from: microsoft/mdeberta-v3-base
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+mask_predictions.dense.bias                | UNEXPECTED | 
+lm_predictions.lm_head.bias                | UNEXPECTED | 
+lm_predictions.lm_head.dense.weight        | UNEXPECTED | 
+mask_predictions.LayerNorm.weight          | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.weight    | UNEXPECTED | 
+mask_predictions.LayerNorm.bias            | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.bias      | UNEXPECTED | 
+mask_predictions.classifier.weight         | UNEXPECTED | 
+lm_predictions.lm_head.dense.bias          | UNEXPECTED | 
+mask_predictions.dense.weight              | UNEXPECTED | 
+mask_predictions.classifier.bias           | UNEXPECTED | 
+deberta.embeddings.word_embeddings._weight | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+CV folds:   0%| | 0/5 [00:54<?, ?fold/s, fold=1/5, ep=1/5, loss=nan, F1=CV folds:   0%| | 0/5 [01:46<?, ?fold/s, fold=1/5, ep=2/5, loss=nan, F1=CV folds:   0%| | 0/5 [02:39<?, ?fold/s, fold=1/5, ep=3/5, loss=nan, F1=CV folds:   0%| | 0/5 [03:32<?, ?fold/s, fold=1/5, ep=4/5, loss=nan, F1=CV folds:   0%| | 0/5 [04:24<?, ?fold/s, fold=1/5, ep=5/5, loss=nan, F1=CV folds:  20%|▏| 1/5 [04:24<17:39, 264.99s/fold, fold=1/5, ep=5/5, loss
+Loading weights:   0%|          | 0/198 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 198/198 [00:00<00:00, 48975.18it/s]
+[1mDebertaV2ForSequenceClassification LOAD REPORT[0m from: microsoft/mdeberta-v3-base
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+mask_predictions.dense.bias                | UNEXPECTED | 
+lm_predictions.lm_head.bias                | UNEXPECTED | 
+lm_predictions.lm_head.dense.weight        | UNEXPECTED | 
+mask_predictions.LayerNorm.weight          | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.weight    | UNEXPECTED | 
+mask_predictions.LayerNorm.bias            | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.bias      | UNEXPECTED | 
+mask_predictions.classifier.weight         | UNEXPECTED | 
+lm_predictions.lm_head.dense.bias          | UNEXPECTED | 
+mask_predictions.dense.weight              | UNEXPECTED | 
+mask_predictions.classifier.bias           | UNEXPECTED | 
+deberta.embeddings.word_embeddings._weight | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+CV folds:  20%|▏| 1/5 [05:18<17:39, 264.99s/fold, fold=2/5, ep=1/5, lossCV folds:  20%|▏| 1/5 [06:11<17:39, 264.99s/fold, fold=2/5, ep=2/5, lossCV folds:  20%|▏| 1/5 [07:04<17:39, 264.99s/fold, fold=2/5, ep=3/5, lossCV folds:  20%|▏| 1/5 [07:56<17:39, 264.99s/fold, fold=2/5, ep=4/5, lossCV folds:  20%|▏| 1/5 [08:49<17:39, 264.99s/fold, fold=2/5, ep=5/5, lossCV folds:  40%|▍| 2/5 [08:49<13:14, 264.73s/fold, fold=2/5, ep=5/5, loss
+Loading weights:   0%|          | 0/198 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 198/198 [00:00<00:00, 49233.59it/s]
+[1mDebertaV2ForSequenceClassification LOAD REPORT[0m from: microsoft/mdeberta-v3-base
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+mask_predictions.dense.bias                | UNEXPECTED | 
+lm_predictions.lm_head.bias                | UNEXPECTED | 
+lm_predictions.lm_head.dense.weight        | UNEXPECTED | 
+mask_predictions.LayerNorm.weight          | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.weight    | UNEXPECTED | 
+mask_predictions.LayerNorm.bias            | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.bias      | UNEXPECTED | 
+mask_predictions.classifier.weight         | UNEXPECTED | 
+lm_predictions.lm_head.dense.bias          | UNEXPECTED | 
+mask_predictions.dense.weight              | UNEXPECTED | 
+mask_predictions.classifier.bias           | UNEXPECTED | 
+deberta.embeddings.word_embeddings._weight | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+CV folds:  40%|▍| 2/5 [09:43<13:14, 264.73s/fold, fold=3/5, ep=1/5, lossCV folds:  40%|▍| 2/5 [10:36<13:14, 264.73s/fold, fold=3/5, ep=2/5, lossCV folds:  40%|▍| 2/5 [11:28<13:14, 264.73s/fold, fold=3/5, ep=3/5, lossCV folds:  40%|▍| 2/5 [12:21<13:14, 264.73s/fold, fold=3/5, ep=4/5, lossCV folds:  40%|▍| 2/5 [13:14<13:14, 264.73s/fold, fold=3/5, ep=5/5, lossCV folds:  60%|▌| 3/5 [13:14<08:49, 264.81s/fold, fold=3/5, ep=5/5, loss
+Loading weights:   0%|          | 0/198 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 198/198 [00:00<00:00, 50362.17it/s]
+[1mDebertaV2ForSequenceClassification LOAD REPORT[0m from: microsoft/mdeberta-v3-base
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+mask_predictions.dense.bias                | UNEXPECTED | 
+lm_predictions.lm_head.bias                | UNEXPECTED | 
+lm_predictions.lm_head.dense.weight        | UNEXPECTED | 
+mask_predictions.LayerNorm.weight          | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.weight    | UNEXPECTED | 
+mask_predictions.LayerNorm.bias            | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.bias      | UNEXPECTED | 
+mask_predictions.classifier.weight         | UNEXPECTED | 
+lm_predictions.lm_head.dense.bias          | UNEXPECTED | 
+mask_predictions.dense.weight              | UNEXPECTED | 
+mask_predictions.classifier.bias           | UNEXPECTED | 
+deberta.embeddings.word_embeddings._weight | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+CV folds:  60%|▌| 3/5 [14:08<08:49, 264.81s/fold, fold=4/5, ep=1/5, lossCV folds:  60%|▌| 3/5 [15:01<08:49, 264.81s/fold, fold=4/5, ep=2/5, lossCV folds:  60%|▌| 3/5 [15:53<08:49, 264.81s/fold, fold=4/5, ep=3/5, lossCV folds:  60%|▌| 3/5 [16:46<08:49, 264.81s/fold, fold=4/5, ep=4/5, lossCV folds:  60%|▌| 3/5 [17:39<08:49, 264.81s/fold, fold=4/5, ep=5/5, lossCV folds:  80%|▊| 4/5 [17:39<04:24, 264.87s/fold, fold=4/5, ep=5/5, loss
+Loading weights:   0%|          | 0/198 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 198/198 [00:00<00:00, 51859.14it/s]
+[1mDebertaV2ForSequenceClassification LOAD REPORT[0m from: microsoft/mdeberta-v3-base
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+mask_predictions.dense.bias                | UNEXPECTED | 
+lm_predictions.lm_head.bias                | UNEXPECTED | 
+lm_predictions.lm_head.dense.weight        | UNEXPECTED | 
+mask_predictions.LayerNorm.weight          | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.weight    | UNEXPECTED | 
+mask_predictions.LayerNorm.bias            | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.bias      | UNEXPECTED | 
+mask_predictions.classifier.weight         | UNEXPECTED | 
+lm_predictions.lm_head.dense.bias          | UNEXPECTED | 
+mask_predictions.dense.weight              | UNEXPECTED | 
+mask_predictions.classifier.bias           | UNEXPECTED | 
+deberta.embeddings.word_embeddings._weight | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+CV folds:  80%|▊| 4/5 [18:33<04:24, 264.87s/fold, fold=5/5, ep=1/5, lossCV folds:  80%|▊| 4/5 [19:25<04:24, 264.87s/fold, fold=5/5, ep=2/5, lossCV folds:  80%|▊| 4/5 [20:18<04:24, 264.87s/fold, fold=5/5, ep=3/5, lossCV folds:  80%|▊| 4/5 [21:11<04:24, 264.87s/fold, fold=5/5, ep=4/5, lossCV folds:  80%|▊| 4/5 [22:03<04:24, 264.87s/fold, fold=5/5, ep=5/5, lossCV folds: 100%|█| 5/5 [22:04<00:00, 264.83s/fold, fold=5/5, ep=5/5, lossCV folds: 100%|█| 5/5 [22:04<00:00, 264.83s/fold, fold=5/5, ep=5/5, loss
+
+=======================================================
+OOF Results — exp008_mdeberta
+=======================================================
+Macro F1: 0.0092
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.065  0.033  1.000    610
+1         0.000  0.000  0.000    693
+2         0.000  0.000  0.000  15968
+3         0.000  0.000  0.000    713
+4         0.000  0.000  0.000    214
+5         0.000  0.000  0.000     29
+6         0.000  0.000  0.000     45
+
+Fold F1s : [0.0092, 0.0092, 0.0092, 0.0092, 0.0092]
+Mean ± σ : 0.0092 ± 0.0000
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.0092
+Threshold tuning best macro F1:     0.0092
+Offsets: {0: np.float64(0.0), 1: np.float64(0.0), 2: np.float64(0.0), 3: np.float64(0.0), 4: np.float64(0.0), 5: np.float64(0.0), 6: np.float64(0.0)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.0092
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.065  0.033  1.000    610
+1         0.000  0.000  0.000    693
+2         0.000  0.000  0.000  15968
+3         0.000  0.000  0.000    713
+4         0.000  0.000  0.000    214
+5         0.000  0.000  0.000     29
+6         0.000  0.000  0.000     45
+
+
+--- Retraining on full data ---
+Loading weights:   0%|          | 0/198 [00:00<?, ?it/s]Loading weights: 100%|██████████| 198/198 [00:00<00:00, 51817.07it/s]
+[1mDebertaV2ForSequenceClassification LOAD REPORT[0m from: microsoft/mdeberta-v3-base
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+mask_predictions.dense.bias                | UNEXPECTED | 
+lm_predictions.lm_head.bias                | UNEXPECTED | 
+lm_predictions.lm_head.dense.weight        | UNEXPECTED | 
+mask_predictions.LayerNorm.weight          | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.weight    | UNEXPECTED | 
+mask_predictions.LayerNorm.bias            | UNEXPECTED | 
+lm_predictions.lm_head.LayerNorm.bias      | UNEXPECTED | 
+mask_predictions.classifier.weight         | UNEXPECTED | 
+lm_predictions.lm_head.dense.bias          | UNEXPECTED | 
+mask_predictions.dense.weight              | UNEXPECTED | 
+mask_predictions.classifier.bias           | UNEXPECTED | 
+deberta.embeddings.word_embeddings._weight | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+Full retrain:   0%|                             | 0/5 [00:00<?, ?ep/s]Full retrain:  20%|████▏                | 1/5 [01:00<04:01, 60.33s/ep]Full retrain:  40%|████████▍            | 2/5 [02:00<03:01, 60.47s/ep]Full retrain:  60%|████████████▌        | 3/5 [03:01<02:01, 60.50s/ep]Full retrain:  80%|████████████████▊    | 4/5 [04:01<01:00, 60.51s/ep]Full retrain: 100%|█████████████████████| 5/5 [05:02<00:00, 60.47s/ep]Full retrain: 100%|█████████████████████| 5/5 [05:02<00:00, 60.47s/ep]
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  1.64it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  1.64it/s]
+wandb: updating run metadata
+wandb: uploading summary, console lines 214-216
+wandb: 
+wandb: Run history:
+wandb:        epoch ▁▁▂▂▂▂▃▃▃▄▄▄▅▅▅▅▆▆▆▇▇▇▇██
+wandb:         fold ▁▁▁▁▁▁▃▃▃▃▃▃▅▅▅▅▅▅▆▆▆▆▆▆██████
+wandb: fold_best_f1 ▁▁███
+wandb:           lr █▆▅▃▁█▆▅▃▁█▆▅▃▁█▆▅▃▁█▆▅▃▁
+wandb:    val/f1_c0 ▁▁▁▁▁▁▁▁▁▁███████████████
+wandb:    val/f1_c1 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:    val/f1_c2 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:    val/f1_c3 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:    val/f1_c4 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:    val/f1_c5 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:          +17 ...
+wandb: 
+wandb: Run summary:
+wandb:        epoch 25
+wandb:         fold 5
+wandb: fold_best_f1 0.00923
+wandb:           lr 0
+wandb:    oof/f1_c0 0.06461
+wandb:    oof/f1_c1 0
+wandb:    oof/f1_c2 0
+wandb:    oof/f1_c3 0
+wandb:    oof/f1_c4 0
+wandb:    oof/f1_c5 0
+wandb:          +28 ...
+wandb: 
+wandb: 🚀 View run exp008_mdeberta at: https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/gtwi0zom
+wandb: ⭐️ View project at: https://wandb.ai/biniamgaromsa/spr-2026-mammography
+wandb: Synced 5 W&B file(s), 2 media file(s), 4 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260420_103833-gtwi0zom/logs
+Model saved → experiments/exp008_mdeberta/model/
+
+Duration   : 1638s  (27.3m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp008_mdeberta/

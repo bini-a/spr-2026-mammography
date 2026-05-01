@@ -1,0 +1,63 @@
+[log] 2026-04-20 22:04:47  →  experiments/exp017_bertimbau_llrd/train.log
+
+=======================================================
+Experiment : exp017_bertimbau_llrd
+Config     : configs/exp017_bertimbau_llrd.yaml
+Started    : 2026-04-20 22:04:47
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base + LLRD (decay=0.9). Head/classifier gets lr=2e-5; each encoder layer below gets lr × 0.9^k; embeddings get lr × 0.9^12 ≈ 5.65e-6. Preserves pretrained lower-layer PT-BR representations while allowing fast task adaptation at the top. Same honest pipeline as exp023 (group-aware K-fold + dedup).
+LLRD decay : 0.9
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/jlh5e2v2
+Loading data... done  (18,272 rows → 9,131 unique texts for training, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+  early stop fold 2 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 5 at epoch 9 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp017_bertimbau_llrd
+=======================================================
+Macro F1: 0.7085
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.773  0.695  0.870    610
+1         0.909  0.842  0.987    693
+2         0.967  0.993  0.942  15968
+3         0.526  0.419  0.708    713
+4         0.629  0.590  0.673    214
+5         0.507  0.447  0.586     29
+6         0.648  0.567  0.756     45
+
+Fold F1s : [0.6815, 0.6926, 0.7038, 0.7313, 0.6946]
+Mean ± σ : 0.7008 ± 0.0168
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7085
+Threshold tuning best macro F1:     0.7199
+Offsets: {0: np.float64(-0.1514), 1: np.float64(-0.0864), 2: np.float64(0.1547), 3: np.float64(-0.2914), 4: np.float64(-0.2304), 5: np.float64(-0.2724), 6: np.float64(-0.2756)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7199
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.778  0.705  0.869    610
+1         0.913  0.850  0.987    693
+2         0.974  0.987  0.961  15968
+3         0.551  0.505  0.606    713
+4         0.640  0.614  0.668    214
+5         0.523  0.472  0.586     29
+6         0.660  0.615  0.711     45
+
+
+--- Retraining on full data (9 epochs, mean of OOF best epochs [10, 8, 9, 9, 7]) ---
+Model saved → experiments/exp017_bertimbau_llrd/model/
+
+Duration   : 866s  (14.4m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp017_bertimbau_llrd/

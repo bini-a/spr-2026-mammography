@@ -1,0 +1,65 @@
+[log] 2026-04-20 12:56:45  →  experiments/exp011_bertimbau_ls/train.log
+
+=======================================================
+Experiment : exp011_bertimbau_ls
+Config     : configs/exp011_bertimbau_ls.yaml
+Started    : 2026-04-20 12:56:45
+Git commit : 9fb24ba
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base + label smoothing (0.1) + early stopping — tests whether smoothing noisy labels helps vs plain CE; same setup as exp010 + label_smoothing=0.1
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/3m8r7yom
+Loading data... done  (18,272 rows, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+  early stop fold 1 at epoch 7 (no improvement for 2 epochs)
+  early stop fold 2 at epoch 6 (no improvement for 2 epochs)
+  early stop fold 3 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 4 at epoch 8 (no improvement for 2 epochs)
+  early stop fold 5 at epoch 9 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp011_bertimbau_ls
+=======================================================
+Macro F1: 0.5240
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.805  0.790  0.821    610
+1         0.955  0.953  0.957    693
+2         0.000  0.000  0.000  15968
+3         0.610  0.609  0.610    713
+4         0.637  0.647  0.626    214
+5         0.002  0.001  0.483     29
+6         0.660  0.600  0.733     45
+
+Fold F1s : [0.5158, 0.5372, 0.5392, 0.5139, 0.5073]
+Mean ± σ : 0.5227 ± 0.0130
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.5240
+Threshold tuning best macro F1:     0.6999
+Offsets: {0: np.float64(0.1641), 1: np.float64(-0.2215), 2: np.float64(0.2819), 3: np.float64(-0.0277), 4: np.float64(-0.1584), 5: np.float64(-0.2559), 6: np.float64(-0.1981)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.6999
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.794  0.732  0.867    610
+1         0.957  0.965  0.949    693
+2         0.980  0.983  0.977  15968
+3         0.608  0.615  0.602    713
+4         0.650  0.718  0.593    214
+5         0.208  0.149  0.345     29
+6         0.702  0.673  0.733     45
+
+
+--- Retraining on full data ---
+Model saved → experiments/exp011_bertimbau_ls/model/
+
+Duration   : 1390s  (23.2m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp011_bertimbau_ls/

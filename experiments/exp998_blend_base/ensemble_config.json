@@ -1,0 +1,17 @@
+{
+  "experiment_name": "exp998_blend_base",
+  "type": "ensemble",
+  "components": [
+    "exp025_multiseed_ensemble",
+    "exp030_bertimbau_synthetic_rare",
+    "exp031_bertimbau_synthetic_c56"
+  ],
+  "weights": [
+    0.5,
+    0.375,
+    0.125
+  ],
+  "seed": 42,
+  "threshold_n_iter": 2000,
+  "notes": ""
+}

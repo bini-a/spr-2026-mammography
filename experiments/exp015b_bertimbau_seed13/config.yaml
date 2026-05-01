@@ -1,0 +1,35 @@
+experiment_name: exp015b_bertimbau_seed13
+notes: "Multi-seed run 2/3 — identical to exp010 (best config) but seed=13; averaged with seed7/seed21 to form exp015 multi-seed ensemble"
+
+seed: 13
+
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: neuralmind/bert-base-portuguese-cased
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [bertimbau, transformer, portuguese, multi-seed]

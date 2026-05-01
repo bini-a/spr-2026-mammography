@@ -1,0 +1,63 @@
+[log] 2026-04-20 21:39:50  →  experiments/exp024_biobertpt_llrd/train.log
+
+=======================================================
+Experiment : exp024_biobertpt_llrd
+Config     : configs/exp024_biobertpt_llrd.yaml
+Started    : 2026-04-20 21:39:50
+Git commit : a5c94a8
+Pretrained : pucpr/biobertpt-all
+Notes      : BioBERTpt-all with LLRD (decay=0.9) + patience=3. LLRD protects lower layers that encode clinical Portuguese knowledge from being overwritten during fine-tuning. Higher patience lets the model recover from bad epochs instead of stopping early.
+LLRD decay : 0.9
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/8j9t7rgc
+Loading data... done  (18,272 rows → 9,131 unique texts for training, 5 folds)
+Tokenizing with 'pucpr/biobertpt-all'... done
+  early stop fold 1 at epoch 9 (no improvement for 3 epochs)
+  early stop fold 3 at epoch 10 (no improvement for 3 epochs)
+
+=======================================================
+OOF Results — exp024_biobertpt_llrd
+=======================================================
+Macro F1: 0.6960
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.742  0.648  0.867    610
+1         0.913  0.853  0.983    693
+2         0.964  0.994  0.937  15968
+3         0.521  0.407  0.724    713
+4         0.609  0.577  0.645    214
+5         0.531  0.486  0.586     29
+6         0.590  0.517  0.689     45
+
+Fold F1s : [0.7017, 0.6856, 0.7309, 0.6907, 0.6592]
+Mean ± σ : 0.6936 ± 0.0233
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.6960
+Threshold tuning best macro F1:     0.7038
+Offsets: {0: np.float64(-0.2213), 1: np.float64(-0.2805), 2: np.float64(0.2525), 3: np.float64(0.07), 4: np.float64(0.1779), 5: np.float64(-0.0111), 6: np.float64(-0.2296)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7038
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.770  0.715  0.834    610
+1         0.919  0.865  0.980    693
+2         0.969  0.990  0.948  15968
+3         0.532  0.431  0.693    713
+4         0.612  0.555  0.682    214
+5         0.516  0.485  0.552     29
+6         0.609  0.596  0.622     45
+
+
+--- Retraining on full data (9 epochs, mean of OOF best epochs [6, 10, 7, 10, 10]) ---
+Model saved → experiments/exp024_biobertpt_llrd/model/
+
+Duration   : 1102s  (18.4m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp024_biobertpt_llrd/

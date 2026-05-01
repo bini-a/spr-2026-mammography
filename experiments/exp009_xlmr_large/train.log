@@ -1,0 +1,60 @@
+[log] 2026-04-20 07:29:27  →  experiments/exp009_xlmr_large/train.log
+
+=======================================================
+Experiment : exp009_xlmr_large
+Config     : configs/exp009_xlmr_large.yaml
+Started    : 2026-04-20 07:29:27
+Git commit : 9fb24ba
+Pretrained : xlm-roberta-large
+Notes      : XLM-RoBERTa large (560M) — higher capacity for rare classes 5/6; batch_size=16 + grad_accum=2 keeps effective batch=32
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/u3fezy9q
+Loading data... done  (18,272 rows, 5 folds)
+Tokenizing with 'xlm-roberta-large'... done
+
+=======================================================
+OOF Results — exp009_xlmr_large
+=======================================================
+Macro F1: 0.5776
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.732  0.643  0.849    610
+1         0.915  0.856  0.981    693
+2         0.947  0.997  0.901  15968
+3         0.418  0.288  0.763    713
+4         0.512  0.435  0.621    214
+5         0.111  0.286  0.069     29
+6         0.409  0.419  0.400     45
+
+Fold F1s : [0.554, 0.5354, 0.584, 0.5535, 0.6281]
+Mean ± σ : 0.5710 ± 0.0325
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.5776
+Threshold tuning best macro F1:     0.6122
+Offsets: {0: np.float64(0.0364), 1: np.float64(0.0621), 2: np.float64(0.1059), 3: np.float64(0.183), 4: np.float64(-0.1381), 5: np.float64(0.195), 6: np.float64(-0.001)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.6122
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.744  0.675  0.830    610
+1         0.916  0.859  0.980    693
+2         0.946  0.997  0.900  15968
+3         0.419  0.282  0.813    713
+4         0.540  0.537  0.542    214
+5         0.311  0.438  0.241     29
+6         0.410  0.447  0.378     45
+
+
+--- Retraining on full data ---
+Model saved → experiments/exp009_xlmr_large/model/
+
+Duration   : 5049s  (84.1m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp009_xlmr_large/

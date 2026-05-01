@@ -1,0 +1,64 @@
+[log] 2026-04-21 09:39:58  →  experiments/exp018_bertimbau_weighted_sampler/train.log
+
+=======================================================
+Experiment : exp018_bertimbau_weighted_sampler
+Config     : configs/exp018_bertimbau_weighted_sampler.yaml
+Started    : 2026-04-21 09:39:58
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base + WeightedRandomSampler (weights ∝ 1/class_count). Every batch is oversampled toward rare classes (c5=29, c6=45) at the DataLoader level, on top of the existing class-weighted CE loss. Same honest pipeline as exp023 (group-aware K-fold + dedup).
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/xnlv1bx5
+Loading data... done  (18,272 rows → 9,131 unique texts for training, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+  early stop fold 1 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 2 at epoch 7 (no improvement for 2 epochs)
+  early stop fold 3 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 5 at epoch 9 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp018_bertimbau_weighted_sampler
+=======================================================
+Macro F1: 0.6603
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.650  0.518  0.874    610
+1         0.873  0.780  0.991    693
+2         0.926  0.999  0.863  15968
+3         0.391  0.258  0.808    713
+4         0.618  0.583  0.659    214
+5         0.528  0.583  0.483     29
+6         0.636  0.548  0.756     45
+
+Fold F1s : [0.709, 0.6003, 0.6307, 0.6627, 0.6761]
+Mean ± σ : 0.6557 ± 0.0374
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.6603
+Threshold tuning best macro F1:     0.6748
+Offsets: {0: np.float64(-0.2874), 1: np.float64(-0.2507), 2: np.float64(0.2807), 3: np.float64(-0.1227), 4: np.float64(0.1615), 5: np.float64(0.0748), 6: np.float64(-0.0708)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.6748
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.709  0.604  0.857    610
+1         0.886  0.804  0.987    693
+2         0.936  0.997  0.882  15968
+3         0.408  0.273  0.804    713
+4         0.616  0.564  0.678    214
+5         0.528  0.583  0.483     29
+6         0.642  0.557  0.756     45
+
+
+--- Retraining on full data (7 epochs, mean of OOF best epochs [8, 5, 8, 9, 7]) ---
+Model saved → experiments/exp018_bertimbau_weighted_sampler/model/
+
+Duration   : 780s  (13.0m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp018_bertimbau_weighted_sampler/

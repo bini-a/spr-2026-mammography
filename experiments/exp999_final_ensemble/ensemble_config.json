@@ -1,0 +1,19 @@
+{
+  "experiment_name": "exp999_final_ensemble",
+  "type": "ensemble",
+  "components": [
+    "exp023_bertimbau_dedup",
+    "exp015a_bertimbau_seed7",
+    "exp015b_bertimbau_seed13",
+    "exp015c_bertimbau_seed21"
+  ],
+  "weights": [
+    0.0065,
+    0.3348,
+    0.2652,
+    0.3935
+  ],
+  "seed": 42,
+  "threshold_n_iter": 2000,
+  "notes": "Optimised 4-seed blend: exp023~0 015a~0.33 015b~0.27 015c~0.39; no synthetic; weight sweep 100k iterations"
+}

@@ -1,0 +1,60 @@
+[log] 2026-04-20 05:08:15  →  experiments/exp006_xlmr_base/train.log
+
+=======================================================
+Experiment : exp006_xlmr_base
+Config     : configs/exp006_xlmr_base.yaml
+Started    : 2026-04-20 05:08:15
+Git commit : 9fb24ba
+Pretrained : xlm-roberta-base
+Notes      : XLM-RoBERTa base (270M) — multilingual RoBERTa, CC-100 corpus incl. PT-BR; A/B vs BERTimbau base (exp004)
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/hsvyxefs
+Loading data... done  (18,272 rows, 5 folds)
+Tokenizing with 'xlm-roberta-base'... done
+
+=======================================================
+OOF Results — exp006_xlmr_base
+=======================================================
+Macro F1: 0.6082
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.767  0.699  0.849    610
+1         0.922  0.874  0.974    693
+2         0.964  0.991  0.939  15968
+3         0.477  0.363  0.696    713
+4         0.568  0.580  0.556    214
+5         0.065  0.500  0.034     29
+6         0.495  0.462  0.533     45
+
+Fold F1s : [0.6037, 0.6384, 0.5989, 0.6364, 0.5572]
+Mean ± σ : 0.6069 ± 0.0297
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.6082
+Threshold tuning best macro F1:     0.6812
+Offsets: {0: np.float64(0.2124), 1: np.float64(-0.0365), 2: np.float64(0.2082), 3: np.float64(0.2359), 4: np.float64(-0.2625), 5: np.float64(0.2301), 6: np.float64(-0.031)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.6812
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.768  0.699  0.851    610
+1         0.923  0.879  0.973    693
+2         0.964  0.991  0.939  15968
+3         0.476  0.357  0.711    713
+4         0.547  0.669  0.463    214
+5         0.556  0.600  0.517     29
+6         0.535  0.561  0.511     45
+
+
+--- Retraining on full data ---
+Model saved → experiments/exp006_xlmr_base/model/
+
+Duration   : 2964s  (49.4m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp006_xlmr_base/

@@ -1,0 +1,60 @@
+[log] 2026-04-20 23:30:19  →  experiments/exp015b_bertimbau_seed13/train.log
+
+=======================================================
+Experiment : exp015b_bertimbau_seed13
+Config     : configs/exp015b_bertimbau_seed13.yaml
+Started    : 2026-04-20 23:30:19
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : Multi-seed run 2/3 — identical to exp010 (best config) but seed=13; averaged with seed7/seed21 to form exp015 multi-seed ensemble
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/p4sxluwv
+Loading data... done  (18,272 rows → 9,131 unique texts for training, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+
+=======================================================
+OOF Results — exp015b_bertimbau_seed13
+=======================================================
+Macro F1: 0.7449
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.804  0.754  0.862    610
+1         0.922  0.864  0.988    693
+2         0.977  0.991  0.964  15968
+3         0.589  0.515  0.687    713
+4         0.679  0.686  0.673    214
+5         0.562  0.514  0.621     29
+6         0.681  0.653  0.711     45
+
+Fold F1s : [0.7707, 0.7341, 0.7456, 0.6907, 0.7275]
+Mean ± σ : 0.7337 ± 0.0261
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7449
+Threshold tuning best macro F1:     0.7566
+Offsets: {0: np.float64(-0.1059), 1: np.float64(-0.0292), 2: np.float64(0.1365), 3: np.float64(0.1349), 4: np.float64(0.0824), 5: np.float64(-0.0965), 6: np.float64(-0.1655)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7566
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.809  0.776  0.846    610
+1         0.923  0.867  0.987    693
+2         0.977  0.990  0.964  15968
+3         0.589  0.510  0.697    713
+4         0.687  0.682  0.692    214
+5         0.590  0.562  0.621     29
+6         0.721  0.756  0.689     45
+
+
+--- Retraining on full data (9 epochs, mean of OOF best epochs [9, 9, 10, 10, 9]) ---
+Model saved → experiments/exp015b_bertimbau_seed13/model/
+
+Duration   : 870s  (14.5m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp015b_bertimbau_seed13/

@@ -1,0 +1,64 @@
+[log] 2026-04-20 10:25:32  →  experiments/exp012_bertimbau_large_es/train.log
+
+=======================================================
+Experiment : exp012_bertimbau_large_es
+Config     : configs/exp012_bertimbau_large_es.yaml
+Started    : 2026-04-20 10:25:32
+Git commit : 9fb24ba
+Pretrained : neuralmind/bert-large-portuguese-cased
+Notes      : BERTimbau large + early stopping — re-run of exp007 with epochs=10, patience=2; tests whether large model was under-trained at 5 epochs (exp007=0.7136 vs base exp004=0.7415)
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/zz3696rf
+Loading data... done  (18,272 rows, 5 folds)
+Tokenizing with 'neuralmind/bert-large-portuguese-cased'... done
+  early stop fold 1 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 2 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 4 at epoch 6 (no improvement for 2 epochs)
+  early stop fold 5 at epoch 8 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp012_bertimbau_large_es
+=======================================================
+Macro F1: 0.7323
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.774  0.721  0.836    610
+1         0.914  0.852  0.987    693
+2         0.972  0.992  0.952  15968
+3         0.562  0.457  0.729    713
+4         0.633  0.622  0.645    214
+5         0.533  0.516  0.552     29
+6         0.737  0.700  0.778     45
+
+Fold F1s : [0.705, 0.7955, 0.7288, 0.7142, 0.7237]
+Mean ± σ : 0.7334 ± 0.0321
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7323
+Threshold tuning best macro F1:     0.7432
+Offsets: {0: np.float64(-0.2238), 1: np.float64(0.0133), 2: np.float64(0.162), 3: np.float64(-0.1705), 4: np.float64(0.0737), 5: np.float64(-0.2488), 6: np.float64(-0.269)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7432
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.790  0.752  0.831    610
+1         0.917  0.856  0.987    693
+2         0.975  0.990  0.960  15968
+3         0.570  0.487  0.687    713
+4         0.651  0.614  0.692    214
+5         0.561  0.571  0.552     29
+6         0.739  0.723  0.756     45
+
+
+--- Retraining on full data ---
+Model saved → experiments/exp012_bertimbau_large_es/model/
+
+Duration   : 6175s  (102.9m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp012_bertimbau_large_es/

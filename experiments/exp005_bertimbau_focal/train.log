@@ -1,0 +1,60 @@
+[log] 2026-04-20 04:30:57  →  experiments/exp005_bertimbau_focal/train.log
+
+=======================================================
+Experiment : exp005_bertimbau_focal
+Config     : configs/exp005_bertimbau_focal.yaml
+Started    : 2026-04-20 04:30:57
+Git commit : 9fb24ba
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base + focal loss (γ=2) — identical to exp004 except loss_fn: focal; A/B comparison to determine best loss for future experiments
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/t71d727o
+Loading data... done  (18,272 rows, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+
+=======================================================
+OOF Results — exp005_bertimbau_focal
+=======================================================
+Macro F1: 0.6517
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.726  0.627  0.861    610
+1         0.879  0.790  0.990    693
+2         0.935  0.999  0.878  15968
+3         0.407  0.270  0.823    713
+4         0.632  0.555  0.734    214
+5         0.392  0.455  0.345     29
+6         0.592  0.547  0.644     45
+
+Fold F1s : [0.6753, 0.653, 0.6455, 0.6512, 0.6107]
+Mean ± σ : 0.6471 ± 0.0209
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.6517
+Threshold tuning best macro F1:     0.6844
+Offsets: {0: np.float64(-0.2417), 1: np.float64(0.069), 2: np.float64(0.294), 3: np.float64(-0.2159), 4: np.float64(0.011), 5: np.float64(0.2264), 6: np.float64(0.1445)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.6844
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.776  0.722  0.839    610
+1         0.890  0.808  0.990    693
+2         0.949  0.995  0.907  15968
+3         0.455  0.318  0.801    713
+4         0.640  0.562  0.743    214
+5         0.481  0.520  0.448     29
+6         0.600  0.545  0.667     45
+
+
+--- Retraining on full data ---
+Model saved → experiments/exp005_bertimbau_focal/model/
+
+Duration   : 1732s  (28.9m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp005_bertimbau_focal/
