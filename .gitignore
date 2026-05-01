@@ -40,3 +40,6 @@ tea_debug.log
 run_*.log
 DE.md
 de.md
+
+experiments/*/model/
+experiments/*/model/**
