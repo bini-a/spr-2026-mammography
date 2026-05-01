@@ -13,7 +13,9 @@ Features:
   - Same output structure as train.py (oof_preds.csv, metrics.json, etc.)
 """
 import gc
+import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -24,12 +26,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.amp import GradScaler, autocast
-from torch.utils.data import DataLoader, Dataset, Subset
+from torch.utils.data import DataLoader, Dataset, Subset, WeightedRandomSampler
 from transformers import get_linear_schedule_with_warmup
 import yaml
 from tqdm import tqdm
 
-from src.data import load_train, make_folds
+from src.data import dedup_for_training, load_synthetic, load_train, make_folds
 from src.evaluate import append_to_results_log, compute_metrics, print_metrics, save_metrics
 from src.features import clean_text
 from src.logging_utils import run_log
@@ -46,10 +48,86 @@ class _FocalLoss(nn.Module):
         self.gamma = gamma
         self.weight = weight
 
-    def forward(self, logits, targets):
+    def forward(self, logits, targets, reduction: str = "mean"):
         ce = F.cross_entropy(logits, targets, weight=self.weight, reduction="none")
         pt = torch.exp(-ce)
-        return (((1 - pt) ** self.gamma) * ce).mean()
+        loss = ((1 - pt) ** self.gamma) * ce
+        if reduction == "none":
+            return loss
+        return loss.mean()
+
+
+def _ce_loss(logits, labels, criterion, sample_weight=None):
+    """Compute CE (or focal) loss, optionally with per-sample weights."""
+    if sample_weight is None:
+        return criterion(logits, labels)
+    if isinstance(criterion, _FocalLoss):
+        per_example = criterion(logits, labels, reduction="none")
+    else:
+        per_example = F.cross_entropy(
+            logits, labels,
+            weight=criterion.weight,
+            reduction="none",
+            label_smoothing=getattr(criterion, "label_smoothing", 0.0),
+        )
+    return (per_example * sample_weight).sum() / sample_weight.sum().clamp_min(1e-12)
+
+
+class _AWP:
+    """
+    Adversarial Weight Perturbation.
+    After the first forward-backward pass has accumulated gradients, call
+    attack_backward() to:
+      1. perturb model weights in the gradient direction (bounded by adv_eps)
+      2. run a second forward-backward to accumulate adversarial gradients
+      3. restore original weights
+    The optimizer then steps with the sum of both gradient contributions.
+    """
+
+    def __init__(self, model, adv_lr: float = 1e-4, adv_eps: float = 1e-2,
+                 start_epoch: int = 1):
+        self.model      = model
+        self.adv_lr     = adv_lr
+        self.adv_eps    = adv_eps
+        self.start_epoch = start_epoch
+        self._backup    = {}
+        self._grad_dir  = {}
+
+    def attack_backward(self, kwargs, labels, criterion, sample_weight, scaler, use_amp):
+        self._save()
+        self._attack()
+        with autocast(device_type="cuda", enabled=use_amp):
+            out_adv = self.model(**kwargs)
+            logits_adv = (out_adv.logits if hasattr(out_adv, "logits") else out_adv).float()
+            loss_adv = _ce_loss(logits_adv, labels, criterion, sample_weight)
+        scaler.scale(loss_adv).backward()
+        self._restore()
+
+    def _save(self):
+        self._backup   = {}
+        self._grad_dir = {}
+        for name, param in self.model.named_parameters():
+            if param.requires_grad and param.grad is not None:
+                self._backup[name] = param.data.clone()
+                g_norm = torch.norm(param.grad)
+                if g_norm > 0 and not torch.isnan(g_norm):
+                    self._grad_dir[name] = param.grad.detach() / g_norm
+
+    def _attack(self):
+        for name, param in self.model.named_parameters():
+            if name in self._grad_dir:
+                param.data.add_(self.adv_lr * self._grad_dir[name])
+                # Clip perturbation magnitude
+                diff = param.data - self._backup[name]
+                diff.clamp_(-self.adv_eps, self.adv_eps)
+                param.data.copy_(self._backup[name] + diff)
+
+    def _restore(self):
+        for name, param in self.model.named_parameters():
+            if name in self._backup:
+                param.data = self._backup[name]
+        self._backup   = {}
+        self._grad_dir = {}
 
 
 # ── Device setup ─────────────────────────────────────────
@@ -199,7 +277,7 @@ def _wandb_log_oof(run, oof_metrics, y_true, oof_preds, fold_f1s):
 class _TextDataset(Dataset):
     """Tokenizes all texts upfront and caches tensors in memory."""
 
-    def __init__(self, texts, tokenizer, max_length, labels=None):
+    def __init__(self, texts, tokenizer, max_length, labels=None, sample_weights=None):
         enc = tokenizer(
             texts,
             padding="max_length",
@@ -212,6 +290,10 @@ class _TextDataset(Dataset):
         self.token_type_ids = enc.get("token_type_ids")
         self.labels = (
             torch.tensor(labels, dtype=torch.long) if labels is not None else None
+        )
+        self.sample_weights = (
+            torch.tensor(sample_weights, dtype=torch.float32)
+            if sample_weights is not None else None
         )
 
     def __len__(self):
@@ -226,26 +308,101 @@ class _TextDataset(Dataset):
             item["token_type_ids"] = self.token_type_ids[idx]
         if self.labels is not None:
             item["labels"] = self.labels[idx]
+        if self.sample_weights is not None:
+            item["sample_weight"] = self.sample_weights[idx]
         return item
 
 
 # ── Class weights ─────────────────────────────────────────
 
-def _class_weights(y):
-    counts = np.bincount(y, minlength=N_CLASSES).astype(float)
+def _class_weights(y, sample_weights=None, num_classes=None):
+    num_classes = int(num_classes or N_CLASSES)
+    if sample_weights is None:
+        counts = np.bincount(y, minlength=num_classes).astype(float)
+    else:
+        counts = np.bincount(
+            y, weights=np.asarray(sample_weights, dtype=float), minlength=num_classes
+        ).astype(float)
     total  = counts.sum()
-    w = np.zeros(N_CLASSES)
+    w = np.zeros(num_classes)
     present = counts > 0
-    w[present] = total / (N_CLASSES * counts[present])
+    w[present] = total / (num_classes * counts[present])
     return torch.tensor(w, dtype=torch.float32)
+
+
+# ── Optimizer ────────────────────────────────────────────
+
+def _make_sampler(dataset_labels: np.ndarray, num_classes: int | None = None) -> WeightedRandomSampler:
+    """Return a WeightedRandomSampler where each sample's weight is 1/class_count."""
+    num_classes = int(num_classes or (dataset_labels.max() + 1))
+    counts = np.bincount(dataset_labels, minlength=num_classes).astype(float)
+    counts = np.where(counts == 0, 1.0, counts)  # avoid division by zero for absent classes
+    weights = 1.0 / counts[dataset_labels]
+    return WeightedRandomSampler(
+        weights=torch.from_numpy(weights).float(),
+        num_samples=len(dataset_labels),
+        replacement=True,
+    )
+
+
+def _build_optimizer(base_model, lr, weight_decay, llrd_decay=1.0):
+    """
+    Build AdamW. When llrd_decay < 1.0, applies layer-wise LR decay so lower
+    BERT layers (which encode pretrained knowledge) are updated more slowly
+    than the classification head. Works for any HuggingFace BERT-family model.
+
+    LR assignment:
+      embeddings  : lr * decay^(n_layers)        ← smallest
+      layer k     : lr * decay^(n_layers - 1 - k)
+      head/pooler : lr                            ← full LR
+    """
+    no_decay = {"bias", "LayerNorm.weight", "LayerNorm.bias"}
+
+    if llrd_decay >= 1.0:
+        # Standard flat-LR AdamW
+        decay_params   = [p for n, p in base_model.named_parameters()
+                          if p.requires_grad and not any(nd in n for nd in no_decay)]
+        nodecay_params = [p for n, p in base_model.named_parameters()
+                          if p.requires_grad and     any(nd in n for nd in no_decay)]
+        return torch.optim.AdamW(
+            [{"params": decay_params,   "lr": lr, "weight_decay": weight_decay},
+             {"params": nodecay_params, "lr": lr, "weight_decay": 0.0}]
+        )
+
+    # Detect number of transformer layers from parameter names
+    layer_indices = set()
+    for name, _ in base_model.named_parameters():
+        m = re.search(r"\.layer\.(\d+)\.", name)
+        if m:
+            layer_indices.add(int(m.group(1)))
+    n_layers = max(layer_indices) + 1 if layer_indices else 1
+
+    param_groups = []
+    for name, param in base_model.named_parameters():
+        if not param.requires_grad:
+            continue
+        wd = 0.0 if any(nd in name for nd in no_decay) else weight_decay
+        m = re.search(r"\.layer\.(\d+)\.", name)
+        if m:
+            k = int(m.group(1))
+            group_lr = lr * (llrd_decay ** (n_layers - 1 - k))
+        elif "embeddings" in name:
+            group_lr = lr * (llrd_decay ** n_layers)
+        else:
+            group_lr = lr   # head, pooler, classifier
+        param_groups.append({"params": [param], "lr": group_lr, "weight_decay": wd})
+
+    return torch.optim.AdamW(param_groups)
 
 
 # ── Training helpers ──────────────────────────────────────
 
-def _train_epoch(model, loader, optimizer, scaler, scheduler, criterion, device, grad_accum):
+def _train_epoch(model, loader, optimizer, scaler, scheduler, criterion, device, grad_accum,
+                 rdrop_alpha: float = 0.0, awp: "_AWP | None" = None, epoch: int = 0):
     model.train()
     total_loss = 0.0
     optimizer.zero_grad()
+    use_amp = scaler.is_enabled()
 
     for step, batch in enumerate(loader):
         ids   = batch["input_ids"].to(device, non_blocking=True)
@@ -254,19 +411,45 @@ def _train_epoch(model, loader, optimizer, scaler, scheduler, criterion, device,
         if ttids is not None:
             ttids = ttids.to(device, non_blocking=True)
         labels = batch["labels"].to(device, non_blocking=True)
+        sample_weight = batch.get("sample_weight")
+        if sample_weight is not None:
+            sample_weight = sample_weight.to(device, non_blocking=True)
 
-        with autocast(device_type="cuda", enabled=scaler.is_enabled()):
-            kwargs = {"input_ids": ids, "attention_mask": mask}
-            if ttids is not None:
-                kwargs["token_type_ids"] = ttids
-            out    = model(**kwargs)
-            logits = out.logits if hasattr(out, "logits") else out
-            loss   = criterion(logits.float(), labels) / grad_accum
+        kwargs = {"input_ids": ids, "attention_mask": mask}
+        if ttids is not None:
+            kwargs["token_type_ids"] = ttids
+
+        with autocast(device_type="cuda", enabled=use_amp):
+            out1    = model(**kwargs)
+            logits1 = (out1.logits if hasattr(out1, "logits") else out1).float()
+
+            if rdrop_alpha > 0.0:
+                # R-Drop: second forward pass with different dropout mask
+                out2    = model(**kwargs)
+                logits2 = (out2.logits if hasattr(out2, "logits") else out2).float()
+                ce_loss = 0.5 * (
+                    _ce_loss(logits1, labels, criterion, sample_weight) +
+                    _ce_loss(logits2, labels, criterion, sample_weight)
+                )
+                p1 = F.log_softmax(logits1, dim=-1)
+                p2 = F.log_softmax(logits2, dim=-1)
+                kl = 0.5 * (
+                    F.kl_div(p1, p2.exp().detach(), reduction="batchmean") +
+                    F.kl_div(p2, p1.exp().detach(), reduction="batchmean")
+                )
+                loss = ce_loss + rdrop_alpha * kl
+            else:
+                loss = _ce_loss(logits1, labels, criterion, sample_weight)
+
+            loss = loss / grad_accum
 
         scaler.scale(loss).backward()
         total_loss += loss.item() * grad_accum
 
         if (step + 1) % grad_accum == 0 or (step + 1) == len(loader):
+            if awp is not None and epoch >= awp.start_epoch:
+                awp.attack_backward(kwargs, labels, criterion, sample_weight, scaler, use_amp)
+
             scaler.unscale_(optimizer)
             params = (model.module if hasattr(model, "module") else model).parameters()
             nn.utils.clip_grad_norm_(params, 1.0)
@@ -333,6 +516,20 @@ def _git_hash():
         return "unknown"
 
 
+def _specialist_class_maps(classes):
+    classes = [int(c) for c in classes]
+    local_to_global = {i: cls for i, cls in enumerate(classes)}
+    global_to_local = {cls: i for i, cls in local_to_global.items()}
+    return global_to_local, local_to_global
+
+
+def _expand_probs_to_global(local_probs: np.ndarray, local_to_global: dict[int, int]) -> np.ndarray:
+    global_probs = np.zeros((len(local_probs), N_CLASSES), dtype=float)
+    for local_idx, global_cls in local_to_global.items():
+        global_probs[:, global_cls] = local_probs[:, local_idx]
+    return global_probs
+
+
 def _run(config, exp_name, out_dir, config_path, notes):
     t_start   = time.time()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -355,6 +552,23 @@ def _run(config, exp_name, out_dir, config_path, notes):
     focal_gamma              = p.get("focal_gamma", 2.0)
     early_stopping_patience  = p.get("early_stopping_patience", None)  # None = disabled
     label_smoothing          = p.get("label_smoothing", 0.0)           # 0.0 = disabled
+    llrd_decay               = p.get("llrd_decay", 1.0)               # 1.0 = disabled (flat LR)
+    weighted_sampler         = p.get("weighted_sampler", False)        # oversample rare classes per batch
+    rdrop_alpha              = float(p.get("rdrop_alpha", 0.0))        # 0.0 = disabled; ~1.0 = R-Drop
+    awp_cfg                  = config.get("awp", {})
+    use_awp                  = awp_cfg.get("enabled", False)
+
+    synth_cfg     = config.get("synthetic_augment", {})
+    use_synthetic = synth_cfg.get("enabled", False)
+    synth_classes = synth_cfg.get("classes", None)  # None = all classes
+    synth_loss_weight = float(synth_cfg.get("loss_weight", 1.0))
+    subset_cfg     = config.get("label_subset", {})
+    use_label_subset = subset_cfg.get("enabled", False)
+    subset_classes = [int(c) for c in subset_cfg.get("classes", [])]
+    if use_label_subset and not subset_classes:
+        raise ValueError("label_subset.enabled=true requires label_subset.classes")
+    if use_label_subset and use_synthetic:
+        raise ValueError("synthetic_augment is disabled for label_subset specialist runs in v1")
 
     gpu_cfg = config.get("gpu", "all")
 
@@ -369,6 +583,16 @@ def _run(config, exp_name, out_dir, config_path, notes):
     print(f"Pretrained : {pretrained}")
     if notes:
         print(f"Notes      : {notes}")
+    if llrd_decay < 1.0:
+        print(f"LLRD decay : {llrd_decay}")
+    if rdrop_alpha > 0.0:
+        print(f"R-Drop α   : {rdrop_alpha}")
+    if use_awp:
+        print(f"AWP        : adv_lr={awp_cfg.get('adv_lr', 1e-4)}  "
+              f"adv_eps={awp_cfg.get('adv_eps', 1e-2)}  "
+              f"start_epoch={awp_cfg.get('start_epoch', 1)}")
+    if use_label_subset:
+        print(f"Label subset: {subset_classes}")
     print(f"{'='*55}")
 
     device, gpu_ids = _setup_device(gpu_cfg)
@@ -380,10 +604,66 @@ def _run(config, exp_name, out_dir, config_path, notes):
     print("Loading data...", end=" ", flush=True)
     df = load_train()
     df["text"] = df["report"].apply(clean_text)
-    df = make_folds(df, n_folds=n_folds, seed=seed)
-    print(f"done  ({len(df):,} rows, {n_folds} folds)")
+    df = make_folds(df, n_folds=n_folds, seed=seed, group_aware=True)
+    full_df = df.copy()
 
-    cw = _class_weights(df["target"].values).to(device)
+    if use_label_subset:
+        global_to_local, local_to_global = _specialist_class_maps(subset_classes)
+        with open(os.path.join(out_dir, "class_map.json"), "w") as f:
+            json.dump(
+                {
+                    "global_to_local": {str(k): v for k, v in global_to_local.items()},
+                    "local_to_global": {str(k): v for k, v in local_to_global.items()},
+                },
+                f,
+                indent=2,
+            )
+        df_train_src = full_df[full_df["target"].isin(subset_classes)].copy()
+        df_train = dedup_for_training(df_train_src)
+        df_train["target_local"] = df_train["target"].map(global_to_local).astype(int)
+        full_df["target_local"] = full_df["target"].map(global_to_local)
+        metric_labels = subset_classes
+        model_num_labels = len(subset_classes)
+    else:
+        df_train = dedup_for_training(full_df)   # one row per unique text, majority-vote labels
+        metric_labels = CLASSES
+        model_num_labels = N_CLASSES
+
+    # Optional synthetic augmentation — always goes into the training pool,
+    # never into OOF validation (which uses `full_ds` = all 18k real rows).
+    df_synth = None
+    n_synth  = 0
+    if use_synthetic:
+        df_synth = load_synthetic(classes=synth_classes)
+        df_synth["text"] = df_synth["report"].apply(clean_text)
+        n_synth = len(df_synth)
+
+    print(
+        f"done  ({len(full_df):,} real rows → {len(df_train):,} unique real texts"
+        + (f" + {n_synth:,} synthetic" if use_synthetic else "")
+        + f" for training, {n_folds} folds)"
+    )
+    if use_synthetic:
+        synth_label = synth_classes if synth_classes is not None else "all"
+        print(f"Synthetic classes: {synth_label}")
+        print(f"Synthetic loss weight: {synth_loss_weight:g}")
+
+    # Class weights from combined training distribution (real + synthetic if enabled)
+    train_labels_for_cw = (
+        df_train["target_local"].values if use_label_subset else df_train["target"].values
+    )
+    train_sample_weights_for_cw = np.ones(len(df_train), dtype=float)
+    if df_synth is not None:
+        train_labels_for_cw = np.concatenate([train_labels_for_cw, df_synth["target"].values])
+        train_sample_weights_for_cw = np.concatenate([
+            train_sample_weights_for_cw,
+            np.full(len(df_synth), synth_loss_weight, dtype=float),
+        ])
+    cw = _class_weights(
+        train_labels_for_cw,
+        train_sample_weights_for_cw,
+        num_classes=model_num_labels,
+    ).to(device)
     if loss_fn == "focal":
         criterion = _FocalLoss(gamma=focal_gamma, weight=cw)
     else:
@@ -391,13 +671,48 @@ def _run(config, exp_name, out_dir, config_path, notes):
 
     # ── Tokenize once upfront ────────────────────────────
     print(f"Tokenizing with '{pretrained}'...", end=" ", flush=True)
-    _, tokenizer = build_model({"pretrained": pretrained})
+    _, tokenizer = build_model({"pretrained": pretrained, "num_labels": model_num_labels})
+    # full_ds: all real rows — used for validation. For specialists, labels are
+    # not consumed from the dataset because metrics are computed from full_df.
     full_ds = _TextDataset(
-        df["text"].tolist(), tokenizer, max_length, labels=df["target"].values
+        full_df["text"].tolist(),
+        tokenizer,
+        max_length,
+        labels=np.zeros(len(full_df), dtype=int),
     )
+    # train_ds_base: real unique texts for training.
+    # If synthetic augmentation is enabled, aug_ds extends this with synthetic rows;
+    # synthetic items occupy positions [len(df_train), len(df_train)+n_synth).
+    if df_synth is not None:
+        aug_texts  = df_train["text"].tolist() + df_synth["text"].tolist()
+        real_train_labels = (
+            df_train["target_local"].values if use_label_subset else df_train["target"].values
+        )
+        aug_labels = np.concatenate([real_train_labels, df_synth["target"].values])
+        aug_sample_weights = np.concatenate([
+            np.ones(len(df_train), dtype=float),
+            np.full(len(df_synth), synth_loss_weight, dtype=float),
+        ])
+        aug_ds = _TextDataset(
+            aug_texts,
+            tokenizer,
+            max_length,
+            labels=aug_labels,
+            sample_weights=aug_sample_weights,
+        )
+        dedup_ds = aug_ds   # alias for retrain loop
+        synth_positions = list(range(len(df_train), len(df_train) + n_synth))
+    else:
+        dedup_ds = _TextDataset(
+            df_train["text"].tolist(),
+            tokenizer,
+            max_length,
+            labels=(df_train["target_local"].values if use_label_subset else df_train["target"].values),
+        )
+        synth_positions = []
     print("done")
 
-    oof_probs        = np.zeros((len(df), N_CLASSES))
+    oof_probs        = np.zeros((len(full_df), N_CLASSES))
     fold_f1s         = []
     fold_best_epochs = []
     global_epoch     = 0  # monotonically increasing across all folds for wandb x-axis
@@ -405,18 +720,35 @@ def _run(config, exp_name, out_dir, config_path, notes):
     # ── OOF cross-validation ──────────────────────────────
     fold_bar = tqdm(range(n_folds), desc="CV folds", unit="fold", ncols=72)
     for fold in fold_bar:
-        train_pos = df.index[df["fold"] != fold].tolist()
-        val_pos   = df.index[df["fold"] == fold].tolist()
+        # Train on deduplicated real rows not in this fold + all synthetic rows;
+        # validate on all real rows in this fold (honest OOF — no synthetic in val).
+        real_train_pos = df_train.index[df_train["fold"] != fold].tolist()
+        train_pos = real_train_pos + synth_positions
+        val_pos   = full_df.index[full_df["fold"] == fold].tolist()
 
-        train_ds = Subset(full_ds, train_pos)
+        train_ds = Subset(dedup_ds, train_pos)
         val_ds   = Subset(full_ds, val_pos)
 
-        train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
-                                  num_workers=4, pin_memory=True)
+        if weighted_sampler:
+            real_labels = (
+                df_train.loc[df_train["fold"] != fold, "target_local"].values
+                if use_label_subset else
+                df_train.loc[df_train["fold"] != fold, "target"].values
+            )
+            fold_labels = (
+                np.concatenate([real_labels, df_synth["target"].values])
+                if df_synth is not None else real_labels
+            )
+            sampler = _make_sampler(fold_labels, num_classes=model_num_labels)
+            train_loader = DataLoader(train_ds, batch_size=batch_size, sampler=sampler,
+                                      num_workers=4, pin_memory=True)
+        else:
+            train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
+                                      num_workers=4, pin_memory=True)
         val_loader   = DataLoader(val_ds, batch_size=eval_batch_size, shuffle=False,
                                   num_workers=4, pin_memory=True)
 
-        model, _ = build_model({"pretrained": pretrained})
+        model, _ = build_model({"pretrained": pretrained, "num_labels": model_num_labels})
         model = model.to(device)
         if len(gpu_ids) > 1:
             model = nn.DataParallel(model, device_ids=gpu_ids)
@@ -426,11 +758,21 @@ def _run(config, exp_name, out_dir, config_path, notes):
         warmup_steps = max(1, int(total_steps * warmup_ratio))
 
         base = model.module if hasattr(model, "module") else model
-        optimizer = torch.optim.AdamW(base.parameters(), lr=lr, weight_decay=weight_decay)
+        optimizer = _build_optimizer(base, lr, weight_decay, llrd_decay)
         scheduler = get_linear_schedule_with_warmup(
             optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
         )
         scaler = GradScaler(enabled=use_amp)
+
+        awp = None
+        if use_awp:
+            base_for_awp = model.module if hasattr(model, "module") else model
+            awp = _AWP(
+                base_for_awp,
+                adv_lr=float(awp_cfg.get("adv_lr", 1e-4)),
+                adv_eps=float(awp_cfg.get("adv_eps", 1e-2)),
+                start_epoch=int(awp_cfg.get("start_epoch", 1)),
+            )
 
         best_f1    = -1.0
         best_probs = None
@@ -442,10 +784,23 @@ def _run(config, exp_name, out_dir, config_path, notes):
             train_loss = _train_epoch(
                 model, train_loader, optimizer, scaler, scheduler,
                 criterion, device, grad_accum,
+                rdrop_alpha=rdrop_alpha, awp=awp, epoch=epoch,
             )
-            val_probs  = _predict(model, val_loader, device, use_amp)
-            y_val      = df.loc[val_pos, "target"].values
-            ep_metrics = compute_metrics(y_val, val_probs.argmax(1))
+            val_probs_local  = _predict(model, val_loader, device, use_amp)
+            val_probs = (
+                _expand_probs_to_global(val_probs_local, local_to_global)
+                if use_label_subset else val_probs_local
+            )
+            val_mask = (
+                full_df.loc[val_pos, "target"].isin(subset_classes).values
+                if use_label_subset else np.ones(len(val_pos), dtype=bool)
+            )
+            y_val = full_df.loc[val_pos, "target"].values[val_mask]
+            ep_metrics = compute_metrics(
+                y_val,
+                val_probs[val_mask].argmax(1),
+                labels=metric_labels,
+            )
             ep_f1      = ep_metrics["macro_f1"]
             current_lr = scheduler.get_last_lr()[0]
 
@@ -486,28 +841,34 @@ def _run(config, exp_name, out_dir, config_path, notes):
     fold_bar.close()
 
     # ── OOF evaluation ────────────────────────────────────
+    eval_mask = (
+        full_df["target"].isin(subset_classes).values
+        if use_label_subset else np.ones(len(full_df), dtype=bool)
+    )
     oof_preds   = oof_probs.argmax(axis=1)
-    oof_metrics = compute_metrics(df["target"].values, oof_preds)
-    print_metrics(oof_metrics, title=f"OOF Results — {exp_name}")
+    oof_metrics = compute_metrics(full_df["target"].values[eval_mask], oof_preds[eval_mask], labels=metric_labels)
+    print_metrics(oof_metrics, title=f"OOF Results — {exp_name}", labels=metric_labels)
     print(f"Fold F1s : {[round(f, 4) for f in fold_f1s]}")
     print(f"Mean ± σ : {np.mean(fold_f1s):.4f} ± {np.std(fold_f1s):.4f}")
 
-    oof_df = df[["ID", "target", "fold"]].copy()
+    oof_df = full_df[["ID", "target", "fold"]].copy()
     oof_df["oof_pred"] = oof_preds
     for i, cls in enumerate(CLASSES):
         oof_df[f"p{cls}"] = oof_probs[:, i]
     oof_df.to_csv(os.path.join(out_dir, "oof_preds.csv"), index=False)
     save_metrics(oof_metrics, out_dir)
 
-    _wandb_log_oof(wb_run, oof_metrics, df["target"].values, oof_preds, fold_f1s)
+    _wandb_log_oof(wb_run, oof_metrics, full_df["target"].values[eval_mask], oof_preds[eval_mask], fold_f1s)
 
     # ── Optional threshold tuning ─────────────────────────
     if config.get("threshold", {}).get("enabled", False):
         print("\n--- Threshold Tuning ---")
-        offsets = tune_thresholds(oof_probs, df["target"].values, seed=seed)
+        if use_label_subset:
+            raise ValueError("Threshold tuning is disabled for label_subset specialist runs in v1")
+        offsets = tune_thresholds(oof_probs, full_df["target"].values, seed=seed)
         np.save(os.path.join(out_dir, "thresholds.npy"), offsets)
         tuned_preds   = oof_probs + offsets
-        tuned_metrics = compute_metrics(df["target"].values, tuned_preds.argmax(1))
+        tuned_metrics = compute_metrics(full_df["target"].values, tuned_preds.argmax(1))
         print_metrics(tuned_metrics, title="OOF Results (after threshold tuning)")
         save_metrics(tuned_metrics, os.path.join(out_dir, "metrics_tuned.json"))
         oof_metrics = tuned_metrics
@@ -520,10 +881,16 @@ def _run(config, exp_name, out_dir, config_path, notes):
     retrain_epochs = max(1, round(sum(fold_best_epochs) / n_folds))
     print(f"\n--- Retraining on full data ({retrain_epochs} epochs, "
           f"mean of OOF best epochs {fold_best_epochs}) ---")
-    full_loader = DataLoader(full_ds, batch_size=batch_size, shuffle=True,
-                             num_workers=4, pin_memory=True)
+    if weighted_sampler:
+        full_labels = train_labels_for_cw   # already includes synthetic if enabled
+        full_sampler = _make_sampler(full_labels, num_classes=model_num_labels)
+        full_loader = DataLoader(dedup_ds, batch_size=batch_size, sampler=full_sampler,
+                                 num_workers=4, pin_memory=True)
+    else:
+        full_loader = DataLoader(dedup_ds, batch_size=batch_size, shuffle=True,
+                                 num_workers=4, pin_memory=True)
 
-    model, tokenizer_full = build_model({"pretrained": pretrained})
+    model, tokenizer_full = build_model({"pretrained": pretrained, "num_labels": model_num_labels})
     model = model.to(device)
     if len(gpu_ids) > 1:
         model = nn.DataParallel(model, device_ids=gpu_ids)
@@ -531,15 +898,26 @@ def _run(config, exp_name, out_dir, config_path, notes):
     total_steps  = max(1, len(full_loader) // grad_accum) * retrain_epochs
     warmup_steps = max(1, int(total_steps * warmup_ratio))
     base         = model.module if hasattr(model, "module") else model
-    optimizer    = torch.optim.AdamW(base.parameters(), lr=lr, weight_decay=weight_decay)
+    optimizer    = _build_optimizer(base, lr, weight_decay, llrd_decay)
     scheduler    = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
     )
     scaler = GradScaler(enabled=use_amp)
 
+    retrain_awp = None
+    if use_awp:
+        retrain_base = model.module if hasattr(model, "module") else model
+        retrain_awp = _AWP(
+            retrain_base,
+            adv_lr=float(awp_cfg.get("adv_lr", 1e-4)),
+            adv_eps=float(awp_cfg.get("adv_eps", 1e-2)),
+            start_epoch=int(awp_cfg.get("start_epoch", 1)),
+        )
+
     for epoch in tqdm(range(retrain_epochs), desc="Full retrain", unit="ep", ncols=70):
         _train_epoch(model, full_loader, optimizer, scaler, scheduler,
-                     criterion, device, grad_accum)
+                     criterion, device, grad_accum,
+                     rdrop_alpha=rdrop_alpha, awp=retrain_awp, epoch=epoch)
 
     save_model(model, tokenizer_full, out_dir)
     print(f"Model saved → experiments/{exp_name}/model/")
@@ -549,6 +927,9 @@ def _run(config, exp_name, out_dir, config_path, notes):
 
     duration = time.time() - t_start
     print(f"\nDuration   : {duration:.0f}s  ({duration/60:.1f}m)")
-    append_to_results_log(exp_name, oof_metrics, config,
-                          timestamp=timestamp, duration=duration, notes=notes)
+    if use_label_subset:
+        print("Specialist label-subset run — skipping append_to_results_log.")
+    else:
+        append_to_results_log(exp_name, oof_metrics, config,
+                              timestamp=timestamp, duration=duration, notes=notes)
     print(f"Outputs    : experiments/{exp_name}/")

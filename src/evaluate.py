@@ -20,22 +20,24 @@ _COMPARE_COLS = [
 ]
 
 
-def compute_metrics(y_true, y_pred) -> dict:
-    macro_f1 = f1_score(y_true, y_pred, average="macro", labels=CLASSES, zero_division=0)
+def compute_metrics(y_true, y_pred, labels=None) -> dict:
+    labels = CLASSES if labels is None else list(labels)
+    macro_f1 = f1_score(y_true, y_pred, average="macro", labels=labels, zero_division=0)
     report = classification_report(
-        y_true, y_pred, labels=CLASSES, zero_division=0, output_dict=True
+        y_true, y_pred, labels=labels, zero_division=0, output_dict=True
     )
-    cm = confusion_matrix(y_true, y_pred, labels=CLASSES)
-    return {"macro_f1": macro_f1, "report": report, "confusion_matrix": cm.tolist()}
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
+    return {"macro_f1": macro_f1, "report": report, "confusion_matrix": cm.tolist(), "labels": labels}
 
 
-def print_metrics(metrics: dict, title: str = "") -> None:
+def print_metrics(metrics: dict, title: str = "", labels=None) -> None:
+    labels = metrics.get("labels", CLASSES) if labels is None else list(labels)
     if title:
         print(f"\n{'='*55}\n{title}\n{'='*55}")
     print(f"Macro F1: {metrics['macro_f1']:.4f}\n")
     print(f"{'Class':<8} {'F1':>6} {'Prec':>6} {'Rec':>6} {'N':>6}")
     print("-" * 38)
-    for cls in CLASSES:
+    for cls in labels:
         r = metrics["report"].get(str(cls), {})
         f1  = r.get("f1-score",  0.0)
         pre = r.get("precision", 0.0)

@@ -13,10 +13,11 @@ def build_model(config: dict):
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
     pretrained = config.get("pretrained", "neuralmind/bert-base-portuguese-cased")
+    num_labels = int(config.get("num_labels", N_CLASSES))
     tokenizer = AutoTokenizer.from_pretrained(pretrained)
     model = AutoModelForSequenceClassification.from_pretrained(
         pretrained,
-        num_labels=N_CLASSES,
+        num_labels=num_labels,
         ignore_mismatched_sizes=True,
     )
     return model, tokenizer
@@ -35,6 +36,10 @@ def load_model(out_dir: str):
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
     model_dir = os.path.join(out_dir, "model")
-    tokenizer = AutoTokenizer.from_pretrained(model_dir)
-    model = AutoModelForSequenceClassification.from_pretrained(model_dir)
+    # local_files_only=True prevents HuggingFace from validating the path as a
+    # repo_id, which fails on deep local paths with multiple slashes (Kaggle).
+    tokenizer = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_dir, local_files_only=True
+    )
     return model, tokenizer

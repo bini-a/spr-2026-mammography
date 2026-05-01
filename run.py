@@ -144,10 +144,15 @@ def main():
         sys.exit(1)
 
     if getattr(args, 'notebook_inference', None):
-        from src.notebook_gen import generate_inference_notebook
         config  = _load_config(config_path)
         exp_dir = os.path.join("experiments", config["experiment_name"])
-        out = generate_inference_notebook(exp_dir, args.notebook_inference)
+        # Ensemble experiments use a different generator (no dataset slug needed)
+        if os.path.exists(os.path.join(exp_dir, "ensemble_config.json")):
+            from src.notebook_gen import generate_ensemble_inference_notebook
+            out = generate_ensemble_inference_notebook(exp_dir)
+        else:
+            from src.notebook_gen import generate_inference_notebook
+            out = generate_inference_notebook(exp_dir, args.notebook_inference)
         print(f"Inference notebook written → {out}")
     elif args.notebook:
         cmd_notebook(config_path)

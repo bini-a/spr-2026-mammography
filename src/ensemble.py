@@ -131,6 +131,94 @@ def run_ensemble(
     return out_dir
 
 
+def run_majority_vote(
+    exp_names: list[str],
+    out_name: str,
+    weights: list[float] | None = None,
+    seed: int = 42,
+    notes: str = "",
+) -> str:
+    """
+    Majority voting ensemble: each model casts one hard vote (argmax of its probs),
+    the plurality class wins. Ties are broken by falling back to probability averaging.
+    Optionally weighted: each model casts w_i votes (rounded to nearest int).
+    """
+    if weights is None:
+        weights = [1.0] * len(exp_names)
+
+    print(f"\n{'='*55}")
+    print(f"Majority Vote : {out_name}")
+    print(f"Components    : {exp_names}")
+    print(f"Weights       : {weights}")
+    print(f"{'='*55}")
+
+    all_probs  = []
+    all_preds  = []
+    labels_ref = None
+    for exp in exp_names:
+        probs, labels = _load_oof(exp)
+        if labels_ref is None:
+            labels_ref = labels
+        elif not np.array_equal(labels_ref, labels):
+            raise ValueError(f"Label mismatch between experiments.")
+        all_probs.append(probs)
+        all_preds.append(probs.argmax(axis=1))
+        print(f"  loaded {exp}  ({len(probs):,} rows)")
+
+    n_rows = len(labels_ref)
+    vote_counts = np.zeros((n_rows, len(CLASSES)), dtype=float)
+    for preds, w in zip(all_preds, weights):
+        for row_i, cls in enumerate(preds):
+            vote_counts[row_i, cls] += w
+
+    # Resolve ties via probability averaging
+    avg_probs   = np.mean(all_probs, axis=0)
+    max_votes   = vote_counts.max(axis=1, keepdims=True)
+    tied        = (vote_counts == max_votes).sum(axis=1) > 1
+    final_preds = vote_counts.argmax(axis=1)
+    final_preds[tied] = avg_probs[tied].argmax(axis=1)
+
+    n_tied = tied.sum()
+    print(f"\nTied rows (resolved by prob avg): {n_tied} / {n_rows} ({100*n_tied/n_rows:.1f}%)")
+
+    metrics = compute_metrics(labels_ref, final_preds)
+    print_metrics(metrics, title=f"Majority Vote OOF — {out_name}")
+
+    # Write artifacts (store avg_probs for downstream use, hard preds as oof_pred)
+    out_dir = os.path.join("experiments", out_name)
+    os.makedirs(out_dir, exist_ok=True)
+
+    oof_df = pd.DataFrame({"target": labels_ref, "oof_pred": final_preds})
+    for i, cls in enumerate(CLASSES):
+        oof_df[f"p{cls}"] = avg_probs[:, i]
+    oof_df.to_csv(os.path.join(out_dir, "oof_preds.csv"), index=False)
+
+    save_metrics(metrics, out_dir)
+
+    ensemble_cfg = {
+        "experiment_name": out_name,
+        "type": "majority_vote",
+        "components": exp_names,
+        "weights": weights,
+        "seed": seed,
+        "notes": notes,
+    }
+    with open(os.path.join(out_dir, "ensemble_config.json"), "w") as f:
+        json.dump(ensemble_cfg, f, indent=2)
+
+    fake_config = {
+        "model": {"type": "ensemble"},
+        "data": {"n_folds": 5},
+        "seed": seed,
+        "notes": notes or f"Majority vote: {', '.join(exp_names)}",
+    }
+    append_to_results_log(out_name, metrics, fake_config,
+                          duration=0, notes=fake_config["notes"])
+
+    print(f"\nOutputs    : experiments/{out_name}/")
+    return out_dir
+
+
 def main():
     parser = argparse.ArgumentParser(description="OOF ensemble from multiple experiments")
     parser.add_argument("experiments", nargs="+", metavar="EXP_NAME",

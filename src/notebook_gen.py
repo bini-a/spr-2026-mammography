@@ -239,6 +239,9 @@ def generate_inference_notebook(exp_dir: str, kaggle_dataset_slug: str) -> str:
         "src/__init__.py",
         "src/data.py",
         "src/features.py",
+        "src/evaluate.py",
+        "src/threshold.py",
+        "src/logging_utils.py",
         "src/models/__init__.py",
         "src/models/transformer.py",
         "src/train_transformer.py",  # needed for _TextDataset
@@ -330,6 +333,505 @@ def generate_inference_notebook(exp_dir: str, kaggle_dataset_slug: str) -> str:
 
     cells = [cell0, cell1, mkdir_cell] + src_cells + [infer_cell, validate_cell]
     out_path = os.path.join(exp_dir, "notebook_inference.ipynb")
+    return _make_notebook(cells, out_path)
+
+
+def generate_ensemble_inference_notebook(exp_dir: str) -> str:
+    """
+    Generate a Kaggle inference notebook for an ensemble experiment.
+
+    Loads all component model weights from a single Kaggle dataset (upload all
+    model/ dirs zipped together), runs inference on test.csv for each, averages
+    probabilities, applies the ensemble thresholds, writes submission.csv.
+
+    Upload instructions:
+        kaggle datasets create -p <dir_with_all_model_subdirs> --dir-mode zip
+
+    The dataset should contain one subdir per component, each with config.json
+    and pytorch_model.bin / model.safetensors:
+        upload_dir/
+          exp023_bertimbau_dedup/   <- copy of experiments/exp023.../model/
+          exp015a_bertimbau_seed7/
+          exp015b_bertimbau_seed13/
+          exp015c_bertimbau_seed21/
+          thresholds.npy            <- copy of this ensemble's thresholds.npy
+    """
+    import yaml
+
+    ensemble_cfg_path = os.path.join(exp_dir, "ensemble_config.json")
+    if not os.path.exists(ensemble_cfg_path):
+        raise FileNotFoundError(f"No ensemble_config.json at {ensemble_cfg_path}")
+
+    with open(ensemble_cfg_path) as f:
+        ens_cfg = json.load(f)
+
+    components = ens_cfg["components"]
+    weights    = ens_cfg.get("weights", [1 / len(components)] * len(components))
+    exp_name   = ens_cfg["experiment_name"]
+
+    # Recursively resolve nested ensembles into flat (leaf_model, effective_weight) pairs
+    def _resolve(comps, wts):
+        flat = []
+        for comp, w in zip(comps, wts):
+            sub_cfg_path = os.path.join("experiments", comp, "ensemble_config.json")
+            if os.path.exists(sub_cfg_path):
+                with open(sub_cfg_path) as f:
+                    sub = json.load(f)
+                sub_comps = sub["components"]
+                sub_wts = sub.get("weights", [1 / len(sub_comps)] * len(sub_comps))
+                flat.extend(_resolve(sub_comps, [sw * w for sw in sub_wts]))
+            else:
+                flat.append((comp, w))
+        return flat
+
+    resolved   = _resolve(components, weights)
+    components = [r[0] for r in resolved]
+    weights    = [r[1] for r in resolved]
+
+    # Verify all component model dirs exist
+    for comp in components:
+        model_dir = os.path.join("experiments", comp, "model")
+        if not os.path.isdir(model_dir):
+            raise FileNotFoundError(f"Component model not found: {model_dir}")
+
+    # Read max_length from first component config
+    first_cfg_path = os.path.join("experiments", components[0], "config.yaml")
+    with open(first_cfg_path) as f:
+        first_cfg = yaml.safe_load(f)
+    max_length = first_cfg.get("model", {}).get("max_length", 256)
+    pretrained = first_cfg["model"]["pretrained"]
+
+    # ── Cell 0: markdown header ──────────────────────────────────────────────
+    cell0 = _cell("\n".join([
+        f"# {exp_name} — ensemble inference",
+        "",
+        f"**Components ({len(components)} models):** " + ", ".join(components),
+        f"**Weights:** {weights}",
+        "",
+        "Inference-only notebook — loads pre-trained weights for each component model,",
+        "averages probability outputs, applies tuned thresholds, writes `submission.csv`.",
+        "Runs in ~10–15 minutes.",
+        "",
+        "## Setup checklist",
+        "1. **Accelerator**: GPU T4×1 (or CPU)",
+        "2. **Internet**: Off",
+        "3. **Competition dataset**: attach `spr-2026-mammography-report-classification`",
+        f"4. **Model dataset**: upload all component model dirs + thresholds.npy as one",
+        f"   Kaggle dataset (see `scripts/upload_ensemble_weights.sh` for instructions)",
+    ]), cell_type="markdown")
+
+    # ── Cell 1: install deps ─────────────────────────────────────────────────
+    cell1 = _cell(
+        "import subprocess, sys\n"
+        "subprocess.check_call([\n"
+        "    sys.executable, '-m', 'pip', 'install', '-q',\n"
+        "    'transformers>=4.40', 'sentencepiece>=0.1.99',\n"
+        "    'pyyaml>=6.0', 'pandas>=2.0', 'numpy>=1.24',\n"
+        "])\n"
+    )
+
+    # ── Cell 2: mkdir + src files ────────────────────────────────────────────
+    mkdir_cell = _cell(
+        "import os\n"
+        "os.makedirs('src/models', exist_ok=True)\n"
+    )
+
+    inference_src_files = [
+        "src/__init__.py",
+        "src/data.py",
+        "src/features.py",
+        "src/evaluate.py",
+        "src/threshold.py",
+        "src/logging_utils.py",
+        "src/models/__init__.py",
+        "src/models/transformer.py",
+        "src/train_transformer.py",
+    ]
+    src_cells = [_writefile_cell(p) for p in inference_src_files if os.path.exists(p)]
+
+    # ── Cell 3: ensemble inference ───────────────────────────────────────────
+    components_repr = repr(components)
+    weights_repr    = repr(weights)
+
+    infer_cell = _cell(
+        "import os\n"
+        "import numpy as np\n"
+        "import pandas as pd\n"
+        "import torch\n"
+        "from torch.amp import autocast\n"
+        "from torch.utils.data import DataLoader\n"
+        "from transformers import AutoModelForSequenceClassification, AutoTokenizer\n"
+        "from src.data import load_test\n"
+        "from src.features import clean_text\n"
+        "from src.train_transformer import _TextDataset\n"
+        "\n"
+        "COMPONENTS   = " + components_repr + "\n"
+        "WEIGHTS      = " + weights_repr + "\n"
+        f"MAX_LENGTH   = {max_length}\n"
+        "\n"
+        "# Find the dataset dir containing all component model subdirs\n"
+        "def _find_dataset_root():\n"
+        "    for root, dirs, files in os.walk('/kaggle/input'):\n"
+        "        if 'thresholds.npy' in files:\n"
+        "            print(f'Found ensemble dataset at: {root}')\n"
+        "            return root\n"
+        "    raise FileNotFoundError('thresholds.npy not found — did you attach the model dataset?')\n"
+        "\n"
+        "DATASET_ROOT = _find_dataset_root()\n"
+        "\n"
+        "# Load test data once\n"
+        "test = load_test()\n"
+        "test['text'] = test['report'].apply(clean_text)\n"
+        "print(f'Test rows: {len(test)}')\n"
+        "\n"
+        "device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n"
+        "print(f'Device: {device}')\n"
+        "\n"
+        "def _load_model_via_symlink(src_dir, idx):\n"
+        "    \"\"\"Load a HuggingFace model from a deep path using a short symlink.\n"
+        "    Newer huggingface_hub rejects paths with >1 slash as invalid repo_ids.\n"
+        "    A short relative symlink has 0 slashes and bypasses this validation.\n"
+        "    \"\"\"\n"
+        "    link = f'_mdl{idx}'\n"
+        "    if os.path.lexists(link):\n"
+        "        os.unlink(link)\n"
+        "    os.symlink(os.path.abspath(src_dir), os.path.abspath(link))\n"
+        "    try:\n"
+        "        tok   = AutoTokenizer.from_pretrained(link, local_files_only=True)\n"
+        "        model = AutoModelForSequenceClassification.from_pretrained(\n"
+        "            link, local_files_only=True)\n"
+        "    finally:\n"
+        "        os.unlink(link)\n"
+        "    return model, tok\n"
+        "\n"
+        "# Run inference for each component model and accumulate weighted probs\n"
+        "os.chdir('/kaggle/working')  # ensure relative symlinks resolve correctly\n"
+        "ensemble_probs = None\n"
+        "for i, (comp, w) in enumerate(zip(COMPONENTS, WEIGHTS)):\n"
+        "    # Dataset was uploaded with model files directly inside comp/ (no model/ subdir)\n"
+        "    model_path = os.path.join(DATASET_ROOT, comp)\n"
+        "    if not os.path.isdir(model_path):\n"
+        "        candidates = [d for d, _, fs in os.walk(DATASET_ROOT)\n"
+        "                      if 'config.json' in fs and comp in d]\n"
+        "        if not candidates:\n"
+        "            raise FileNotFoundError(f'Model dir for {comp} not found under {DATASET_ROOT}')\n"
+        "        model_path = candidates[0]\n"
+        "    print(f'Loading {comp} from {model_path} (weight={w})')\n"
+        "    model, tokenizer = _load_model_via_symlink(model_path, i)\n"
+        "    model = model.to(device).eval()\n"
+        "\n"
+        "    ds     = _TextDataset(test['text'].tolist(), tokenizer, MAX_LENGTH)\n"
+        "    loader = DataLoader(ds, batch_size=128, shuffle=False, num_workers=2)\n"
+        "\n"
+        "    all_probs = []\n"
+        "    with torch.no_grad():\n"
+        "        for batch in loader:\n"
+        "            ids  = batch['input_ids'].to(device)\n"
+        "            mask = batch['attention_mask'].to(device)\n"
+        "            ttids = batch.get('token_type_ids')\n"
+        "            kwargs = {'input_ids': ids, 'attention_mask': mask}\n"
+        "            if ttids is not None:\n"
+        "                kwargs['token_type_ids'] = ttids.to(device)\n"
+        "            with autocast(device_type='cuda', enabled=torch.cuda.is_available()):\n"
+        "                out = model(**kwargs)\n"
+        "            all_probs.append(torch.softmax(out.logits.float(), dim=-1).cpu().numpy())\n"
+        "\n"
+        "    comp_probs = np.concatenate(all_probs, axis=0)\n"
+        "    ensemble_probs = comp_probs * w if ensemble_probs is None else ensemble_probs + comp_probs * w\n"
+        "    del model\n"
+        "    torch.cuda.empty_cache()\n"
+        "    print(f'  done — shape {comp_probs.shape}')\n"
+        "\n"
+        "# Apply saved threshold offsets\n"
+        "threshold_path = os.path.join(DATASET_ROOT, 'thresholds.npy')\n"
+        "offsets = np.load(threshold_path)\n"
+        "preds = np.argmax(ensemble_probs + offsets, axis=1)\n"
+        "print(f'Applied threshold offsets from {threshold_path}')\n"
+        "\n"
+        "sub = pd.DataFrame({'ID': test['ID'], 'target': preds})\n"
+        "sub.to_csv('submission.csv', index=False)\n"
+        "print(f'submission.csv written: {len(sub)} rows')\n"
+        "print(sub['target'].value_counts().sort_index().to_string())\n"
+    )
+
+    # ── Cell 4: validate ─────────────────────────────────────────────────────
+    validate_cell = _cell(
+        "import pandas as pd\n"
+        "sub = pd.read_csv('submission.csv')\n"
+        "assert {'ID', 'target'}.issubset(sub.columns)\n"
+        "assert sub['target'].between(0, 6).all(), 'Targets out of range'\n"
+        "print(f'submission.csv: {len(sub)} rows')\n"
+        "sub.head()\n"
+    )
+
+    cells = [cell0, cell1, mkdir_cell] + src_cells + [infer_cell, validate_cell]
+    out_path = os.path.join(exp_dir, "notebook_inference.ipynb")
+    return _make_notebook(cells, out_path)
+
+
+def generate_rerank_inference_notebook(rerank_exp_dir: str) -> str:
+    """
+    Generate a Kaggle inference notebook for a specialist-rerank experiment.
+
+    The pipeline:
+      1. Load each base-ensemble component model, run inference, average probs.
+      2. Load each specialist model, apply soft gated reranking.
+      3. Apply tuned threshold offsets.
+      4. Write submission.csv.
+
+    Upload a single Kaggle dataset containing one subdir per model + thresholds.npy:
+        upload_dir/
+          <base_comp_0>/          <- copy of experiments/<comp>/model/ contents
+          <base_comp_1>/
+          ...
+          <spec023_name>/
+          <spec456_name>/
+          thresholds.npy          <- copy of experiments/<rerank_exp>/thresholds.npy
+    """
+    import yaml
+
+    rerank_cfg_path = os.path.join(rerank_exp_dir, "rerank_config.json")
+    if not os.path.exists(rerank_cfg_path):
+        raise FileNotFoundError(f"No rerank_config.json at {rerank_cfg_path}")
+    with open(rerank_cfg_path) as f:
+        rk = json.load(f)
+
+    base_exp   = rk["base"]
+    spec023    = rk.get("spec023")
+    spec456    = rk.get("spec456")
+    alpha023   = rk.get("alpha023", 0.5)
+    alpha456   = rk.get("alpha456", 0.5)
+    exp_name   = rk["experiment_name"]
+
+    # Resolve base ensemble components
+    base_dir = os.path.join("experiments", base_exp)
+    ens_cfg_path = os.path.join(base_dir, "ensemble_config.json")
+    if not os.path.exists(ens_cfg_path):
+        raise FileNotFoundError(f"Base experiment {base_exp} has no ensemble_config.json")
+    with open(ens_cfg_path) as f:
+        ens_cfg = json.load(f)
+    base_components = ens_cfg["components"]
+    base_weights    = ens_cfg.get("weights", [1 / len(base_components)] * len(base_components))
+
+    # Read config from first base component
+    first_cfg_path = os.path.join("experiments", base_components[0], "config.yaml")
+    with open(first_cfg_path) as f:
+        first_cfg = yaml.safe_load(f)
+    max_length = first_cfg.get("model", {}).get("max_length", 256)
+
+    all_model_dirs = base_components + ([spec023] if spec023 else []) + ([spec456] if spec456 else [])
+    for m in all_model_dirs:
+        if not os.path.isdir(os.path.join("experiments", m, "model")):
+            raise FileNotFoundError(f"Model dir missing: experiments/{m}/model/")
+
+    # Read specialist class maps (local index → global class label)
+    def _read_local_to_global(exp_name):
+        p = os.path.join("experiments", exp_name, "class_map.json")
+        if not os.path.exists(p):
+            return None
+        with open(p) as f:
+            cm = json.load(f)
+        return {int(k): int(v) for k, v in cm["local_to_global"].items()}
+
+    spec023_l2g = _read_local_to_global(spec023) if spec023 else None
+    spec456_l2g = _read_local_to_global(spec456) if spec456 else None
+
+    # ── Cell 0: header ───────────────────────────────────────────────────────
+    cell0 = _cell("\n".join([
+        f"# {exp_name} — specialist rerank inference",
+        "",
+        f"**Base ensemble:** {base_exp} ({len(base_components)} models)",
+        f"**Specialists:** {spec023} (α={alpha023}), {spec456} (α={alpha456})",
+        "",
+        "Inference pipeline: average base model probs → soft specialist rerank → threshold tuning offsets → submission.csv",
+        "Runtime: ~15–20 min on GPU T4.",
+        "",
+        "## Setup checklist",
+        "1. **Accelerator**: GPU T4×1",
+        "2. **Internet**: Off",
+        "3. **Competition dataset**: attach `spr-2026-mammography-report-classification`",
+        "4. **Model dataset**: upload all 6 model dirs + thresholds.npy as one Kaggle dataset",
+        "   (see the prep script output for exact directory layout)",
+    ]), cell_type="markdown")
+
+    # ── Cell 1: install deps ─────────────────────────────────────────────────
+    cell1 = _cell(
+        "import subprocess, sys\n"
+        "subprocess.check_call([\n"
+        "    sys.executable, '-m', 'pip', 'install', '-q',\n"
+        "    'transformers>=4.40', 'sentencepiece>=0.1.99',\n"
+        "    'pyyaml>=6.0', 'pandas>=2.0', 'numpy>=1.24',\n"
+        "])\n"
+    )
+
+    # ── Cell 2: src files ────────────────────────────────────────────────────
+    mkdir_cell = _cell("import os\nos.makedirs('src/models', exist_ok=True)\n")
+    inference_src_files = [
+        "src/__init__.py", "src/data.py", "src/features.py",
+        "src/evaluate.py", "src/threshold.py", "src/logging_utils.py",
+        "src/models/__init__.py", "src/models/transformer.py",
+        "src/train_transformer.py",
+    ]
+    src_cells = [_writefile_cell(p) for p in inference_src_files if os.path.exists(p)]
+
+    # ── Cell 3: inference + rerank ───────────────────────────────────────────
+    base_comps_repr   = repr(base_components)
+    base_weights_repr = repr(base_weights)
+    spec023_repr      = repr(spec023)
+    spec456_repr      = repr(spec456)
+    spec023_l2g_repr  = repr(spec023_l2g)
+    spec456_l2g_repr  = repr(spec456_l2g)
+
+    infer_code = (
+        "import os, numpy as np, pandas as pd, torch\n"
+        "from torch.amp import autocast\n"
+        "from torch.utils.data import DataLoader\n"
+        "from transformers import AutoModelForSequenceClassification, AutoTokenizer\n"
+        "from src.data import load_test\n"
+        "from src.features import clean_text\n"
+        "from src.train_transformer import _TextDataset\n"
+        "\n"
+        f"BASE_COMPONENTS  = {base_comps_repr}\n"
+        f"BASE_WEIGHTS     = {base_weights_repr}\n"
+        f"SPEC023          = {spec023_repr}\n"
+        f"SPEC456          = {spec456_repr}\n"
+        f"SPEC023_L2G      = {spec023_l2g_repr}\n"
+        f"SPEC456_L2G      = {spec456_l2g_repr}\n"
+        f"ALPHA023         = {alpha023}\n"
+        f"ALPHA456         = {alpha456}\n"
+        f"MAX_LENGTH       = {max_length}\n"
+        "N_CLASSES        = 7\n"
+        "\n"
+        "def _find_dataset_root():\n"
+        "    for root, dirs, files in os.walk('/kaggle/input'):\n"
+        "        if 'thresholds.npy' in files:\n"
+        "            print(f'Dataset root: {root}'); return root\n"
+        "    raise FileNotFoundError('thresholds.npy not found — attach the model dataset')\n"
+        "\n"
+        "def _load_model(dataset_root, name, idx):\n"
+        "    src_dir = os.path.join(dataset_root, name)\n"
+        "    if not os.path.isdir(src_dir):\n"
+        "        cands = [d for d, _, fs in os.walk(dataset_root) if 'config.json' in fs and name in d]\n"
+        "        if not cands: raise FileNotFoundError(f'{name} not found under {dataset_root}')\n"
+        "        src_dir = cands[0]\n"
+        "    link = f'_mdl{idx}'\n"
+        "    if os.path.lexists(link): os.unlink(link)\n"
+        "    os.symlink(os.path.abspath(src_dir), os.path.abspath(link))\n"
+        "    try:\n"
+        "        tok = AutoTokenizer.from_pretrained(link, local_files_only=True)\n"
+        "        mdl = AutoModelForSequenceClassification.from_pretrained(link, local_files_only=True)\n"
+        "    finally:\n"
+        "        os.unlink(link)\n"
+        "    return mdl, tok\n"
+        "\n"
+        "def _run_inference(model, tokenizer, texts, device):\n"
+        "    ds = _TextDataset(texts, tokenizer, MAX_LENGTH)\n"
+        "    loader = DataLoader(ds, batch_size=128, shuffle=False, num_workers=2)\n"
+        "    all_probs = []\n"
+        "    with torch.no_grad():\n"
+        "        for batch in loader:\n"
+        "            ids  = batch['input_ids'].to(device)\n"
+        "            mask = batch['attention_mask'].to(device)\n"
+        "            ttids = batch.get('token_type_ids')\n"
+        "            kwargs = {'input_ids': ids, 'attention_mask': mask}\n"
+        "            if ttids is not None: kwargs['token_type_ids'] = ttids.to(device)\n"
+        "            with autocast(device_type='cuda', enabled=torch.cuda.is_available()):\n"
+        "                out = model(**kwargs)\n"
+        "            all_probs.append(torch.softmax(out.logits.float(), dim=-1).cpu().numpy())\n"
+        "    return np.concatenate(all_probs, axis=0)\n"
+        "\n"
+        "def _expand_spec_probs(local_probs, local_to_global):\n"
+        "    \"\"\"Expand (N, K) specialist output to (N, 7) using local→global class map.\"\"\"\n"
+        "    n = local_probs.shape[0]\n"
+        "    out = np.zeros((n, N_CLASSES), dtype=float)\n"
+        "    for local_idx, global_idx in local_to_global.items():\n"
+        "        out[:, global_idx] = local_probs[:, local_idx]\n"
+        "    return out\n"
+        "\n"
+        "def _renorm_group(probs, group):\n"
+        "    sub = probs[:, group].copy()\n"
+        "    denom = sub.sum(axis=1, keepdims=True)\n"
+        "    denom = np.where(denom <= 0, 1.0, denom)\n"
+        "    return sub / denom\n"
+        "\n"
+        "def _blend_group(base_probs, spec_probs, group, alpha):\n"
+        "    out = base_probs.copy()\n"
+        "    base_mass = base_probs[:, group].sum(axis=1, keepdims=True)\n"
+        "    blended = (1 - alpha) * _renorm_group(base_probs, group) + alpha * _renorm_group(spec_probs, group)\n"
+        "    out[:, group] = blended * base_mass\n"
+        "    return out\n"
+        "\n"
+        "os.chdir('/kaggle/working')\n"
+        "DATASET_ROOT = _find_dataset_root()\n"
+        "test = load_test()\n"
+        "test['text'] = test['report'].apply(clean_text)\n"
+        "print(f'Test rows: {len(test)}')\n"
+        "device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n"
+        "print(f'Device: {device}')\n"
+        "\n"
+        "# Step 1: average base model probs\n"
+        "base_probs = None\n"
+        "for i, (comp, w) in enumerate(zip(BASE_COMPONENTS, BASE_WEIGHTS)):\n"
+        "    print(f'Base model {i+1}/{len(BASE_COMPONENTS)}: {comp}')\n"
+        "    mdl, tok = _load_model(DATASET_ROOT, comp, i)\n"
+        "    mdl = mdl.to(device).eval()\n"
+        "    p = _run_inference(mdl, tok, test['text'].tolist(), device)\n"
+        "    base_probs = p * w if base_probs is None else base_probs + p * w\n"
+        "    del mdl; torch.cuda.empty_cache()\n"
+        "print(f'Base ensemble shape: {base_probs.shape}')\n"
+        "\n"
+        "# Step 2: specialist reranking\n"
+        "probs = base_probs.copy()\n"
+        "n_base = len(BASE_COMPONENTS)\n"
+        "if SPEC023:\n"
+        "    print(f'Loading spec023: {SPEC023}')\n"
+        "    mdl, tok = _load_model(DATASET_ROOT, SPEC023, n_base)\n"
+        "    mdl = mdl.to(device).eval()\n"
+        "    spec023_local = _run_inference(mdl, tok, test['text'].tolist(), device)\n"
+        "    spec023_probs = _expand_spec_probs(spec023_local, SPEC023_L2G)\n"
+        "    del mdl; torch.cuda.empty_cache()\n"
+        "    top2 = np.argsort(probs, axis=1)[:, -2:]\n"
+        "    gate023 = np.isin(top2, [0, 2, 3]).all(axis=1)\n"
+        "    print(f'  gate023 activates on {gate023.sum()} rows')\n"
+        "    blended = _blend_group(probs, spec023_probs, [0, 2, 3], ALPHA023)\n"
+        "    probs[gate023] = blended[gate023]\n"
+        "if SPEC456:\n"
+        "    print(f'Loading spec456: {SPEC456}')\n"
+        "    mdl, tok = _load_model(DATASET_ROOT, SPEC456, n_base + 1)\n"
+        "    mdl = mdl.to(device).eval()\n"
+        "    spec456_local = _run_inference(mdl, tok, test['text'].tolist(), device)\n"
+        "    spec456_probs = _expand_spec_probs(spec456_local, SPEC456_L2G)\n"
+        "    del mdl; torch.cuda.empty_cache()\n"
+        "    top2 = np.argsort(probs, axis=1)[:, -2:]\n"
+        "    gate456 = np.isin(top2, [4, 5, 6]).all(axis=1)\n"
+        "    print(f'  gate456 activates on {gate456.sum()} rows')\n"
+        "    blended = _blend_group(probs, spec456_probs, [4, 5, 6], ALPHA456)\n"
+        "    probs[gate456] = blended[gate456]\n"
+        "\n"
+        "# Step 3: apply tuned threshold offsets\n"
+        "offsets = np.load(os.path.join(DATASET_ROOT, 'thresholds.npy'))\n"
+        "preds = np.argmax(probs + offsets, axis=1)\n"
+        "print('Applied threshold offsets:', offsets.round(4).tolist())\n"
+        "\n"
+        "sub = pd.DataFrame({'ID': test['ID'], 'target': preds})\n"
+        "sub.to_csv('submission.csv', index=False)\n"
+        "print(f'submission.csv: {len(sub)} rows')\n"
+        "print(sub['target'].value_counts().sort_index().to_string())\n"
+    )
+
+    infer_cell = _cell(infer_code)
+
+    validate_cell = _cell(
+        "import pandas as pd\n"
+        "sub = pd.read_csv('submission.csv')\n"
+        "assert {'ID', 'target'}.issubset(sub.columns)\n"
+        "assert sub['target'].between(0, 6).all(), 'Targets out of range'\n"
+        "print(f'OK — {len(sub)} rows')\n"
+        "sub.head()\n"
+    )
+
+    cells = [cell0, cell1, mkdir_cell] + src_cells + [infer_cell, validate_cell]
+    out_path = os.path.join(rerank_exp_dir, "notebook_inference.ipynb")
     return _make_notebook(cells, out_path)
 
 
