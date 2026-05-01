@@ -38,3 +38,5 @@ tea_debug.log
 
 # Runtime logs (root-level nohup runs)
 run_*.log
+DE.md
+de.md
