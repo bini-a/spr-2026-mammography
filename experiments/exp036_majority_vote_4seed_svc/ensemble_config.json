@@ -1,0 +1,20 @@
+{
+  "experiment_name": "exp036_majority_vote_4seed_svc",
+  "type": "majority_vote",
+  "components": [
+    "exp023_bertimbau_dedup",
+    "exp015a_bertimbau_seed7",
+    "exp015b_bertimbau_seed13",
+    "exp015c_bertimbau_seed21",
+    "exp002_tfidf_svc"
+  ],
+  "weights": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "seed": 42,
+  "notes": ""
+}

@@ -1,0 +1,66 @@
+[log] 2026-04-21 11:30:35  →  experiments/exp031_bertimbau_synthetic_c56/train.log
+
+=======================================================
+Experiment : exp031_bertimbau_synthetic_c56
+Config     : configs/exp031_bertimbau_synthetic_c56.yaml
+Started    : 2026-04-21 11:30:35
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base + weighted synthetic augmentation for extreme-rare classes {5,6} only (90 rows). Synthetic rows train with loss_weight=0.5 so c5/c6 signal is added without letting synthetic templates dominate real-report supervision.
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/3vqwmboh
+Loading data... done  (18,272 real rows → 9,131 unique real texts + 90 synthetic for training, 5 folds)
+Synthetic classes: [5, 6]
+Synthetic loss weight: 0.5
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+  early stop fold 2 at epoch 10 (no improvement for 2 epochs)
+  early stop fold 3 at epoch 9 (no improvement for 2 epochs)
+  early stop fold 4 at epoch 6 (no improvement for 2 epochs)
+  early stop fold 5 at epoch 10 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp031_bertimbau_synthetic_c56
+=======================================================
+Macro F1: 0.7362
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.769  0.713  0.834    610
+1         0.929  0.879  0.984    693
+2         0.973  0.991  0.956  15968
+3         0.571  0.480  0.704    713
+4         0.633  0.614  0.654    214
+5         0.618  0.538  0.724     29
+6         0.660  0.574  0.778     45
+
+Fold F1s : [0.7444, 0.7198, 0.7184, 0.7058, 0.7618]
+Mean ± σ : 0.7300 ± 0.0202
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7362
+Threshold tuning best macro F1:     0.7456
+Offsets: {0: np.float64(-0.266), 1: np.float64(-0.0756), 2: np.float64(0.2667), 3: np.float64(0.085), 4: np.float64(0.1029), 5: np.float64(0.0794), 6: np.float64(-0.1806)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7456
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.792  0.777  0.807    610
+1         0.931  0.888  0.980    693
+2         0.975  0.989  0.961  15968
+3         0.575  0.488  0.700    713
+4         0.649  0.622  0.678    214
+5         0.618  0.538  0.724     29
+6         0.680  0.618  0.756     45
+
+
+--- Retraining on full data (7 epochs, mean of OOF best epochs [10, 8, 7, 4, 8]) ---
+Model saved → experiments/exp031_bertimbau_synthetic_c56/model/
+
+Duration   : 777s  (12.9m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp031_bertimbau_synthetic_c56/

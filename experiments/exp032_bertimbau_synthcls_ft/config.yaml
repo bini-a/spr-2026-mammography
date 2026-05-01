@@ -1,0 +1,35 @@
+experiment_name: exp032_bertimbau_synthcls_ft
+notes: "BERTimbau base + supervised synthetic classification pretrain on 18k competition-provided synthetic reports, then honest fine-tune on real data."
+
+seed: 42
+
+gpu: all
+
+data:
+  n_folds: 5
+
+model:
+  type: transformer
+  pretrained: models/bertimbau_synth_cls
+  max_length: 256
+
+  params:
+    epochs: 10
+    batch_size: 64
+    eval_batch_size: 128
+    gradient_accumulation_steps: 1
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true
+    early_stopping_patience: 2
+    loss_fn: cross_entropy
+
+threshold:
+  enabled: true
+
+wandb:
+  enabled: true
+  project: spr-2026-mammography
+  entity: null
+  tags: [bertimbau, synthetic-pretrain, supervised-pretrain, fine-tune]

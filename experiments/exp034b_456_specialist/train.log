@@ -1,0 +1,42 @@
+[log] 2026-04-21 12:33:52  →  experiments/exp034b_456_specialist/train.log
+
+=======================================================
+Experiment : exp034b_456_specialist
+Config     : configs/exp034b_456_specialist.yaml
+Started    : 2026-04-21 12:33:52
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : Specialist BERTimbau model for the suspicious-severity confusion group {4,5,6}. Trains only on subset labels, emits full-row global-shaped OOF probabilities for reranking.
+Label subset: [4, 5, 6]
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb init failed (1 validation error for Settings
+run_tags.3
+  Input should be a valid string [type=string_type, input_value=456, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_type) — continuing without tracking
+Loading data... done  (18,272 real rows → 288 unique real texts for training, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... done
+  early stop fold 1 at epoch 9 (no improvement for 2 epochs)
+  early stop fold 3 at epoch 6 (no improvement for 2 epochs)
+  early stop fold 4 at epoch 3 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp034b_456_specialist
+=======================================================
+Macro F1: 0.5718
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+4         0.783  0.852  0.724    214
+5         0.259  0.196  0.379     29
+6         0.674  0.640  0.711     45
+
+Fold F1s : [0.5014, 0.6127, 0.6361, 0.3679, 0.5938]
+Mean ± σ : 0.5424 ± 0.0985
+
+--- Retraining on full data (6 epochs, mean of OOF best epochs [7, 9, 4, 1, 9]) ---
+Model saved → experiments/exp034b_456_specialist/model/
+
+Duration   : 109s  (1.8m)
+Specialist label-subset run — skipping append_to_results_log.
+Outputs    : experiments/exp034b_456_specialist/

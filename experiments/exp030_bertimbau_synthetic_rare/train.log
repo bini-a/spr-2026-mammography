@@ -1,0 +1,241 @@
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /home/biniam/.netrc.
+wandb: Currently logged in as: biniamgaromsa to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run xepyfxf5
+wandb: Tracking run with wandb version 0.26.0
+wandb: Run data is saved locally in /home/biniam/Documents/Projects/spr-2026-mammography/wandb/run-20260421_104918-xepyfxf5
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run exp030_bertimbau_synthetic_rare
+wandb: ⭐️ View project at https://wandb.ai/biniamgaromsa/spr-2026-mammography
+wandb: 🚀 View run at https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/xepyfxf5
+[log] 2026-04-21 10:49:18  →  experiments/exp030_bertimbau_synthetic_rare/train.log
+
+=======================================================
+Experiment : exp030_bertimbau_synthetic_rare
+Config     : configs/exp030_bertimbau_synthetic_rare.yaml
+Started    : 2026-04-21 10:49:18
+Git commit : a5c94a8
+Pretrained : neuralmind/bert-base-portuguese-cased
+Notes      : BERTimbau base + synthetic augmentation for rare classes {0,3,4,5,6}. Adds ~3,600 synthetic rows to training pool (never to OOF val). Tests whether competition-provided synthetic data lifts c3/c4/c5/c6.
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/xepyfxf5
+Loading data... done  (18,272 rows → 9,131 unique real texts + 1,602 synthetic for training, 5 folds)
+Tokenizing with 'neuralmind/bert-base-portuguese-cased'... Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 46185.62it/s]
+[1mBertForSequenceClassification LOAD REPORT[0m from: neuralmind/bert-base-portuguese-cased
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.decoder.weight             | UNEXPECTED | 
+cls.predictions.bias                       | UNEXPECTED | 
+cls.seq_relationship.weight                | UNEXPECTED | 
+cls.seq_relationship.bias                  | UNEXPECTED | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+done
+CV folds:   0%|                                 | 0/5 [00:00<?, ?fold/s]
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 199/199 [00:00<00:00, 46854.52it/s]
+[1mBertForSequenceClassification LOAD REPORT[0m from: neuralmind/bert-base-portuguese-cased
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.decoder.weight             | UNEXPECTED | 
+cls.predictions.bias                       | UNEXPECTED | 
+cls.seq_relationship.weight                | UNEXPECTED | 
+cls.seq_relationship.bias                  | UNEXPECTED | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+CV folds:   0%| | 0/5 [00:17<?, ?fold/s, fold=1/5, ep=1/10, loss=1.729, CV folds:   0%| | 0/5 [00:33<?, ?fold/s, fold=1/5, ep=2/10, loss=0.712, CV folds:   0%| | 0/5 [00:50<?, ?fold/s, fold=1/5, ep=3/10, loss=0.411, CV folds:   0%| | 0/5 [01:07<?, ?fold/s, fold=1/5, ep=4/10, loss=0.266, CV folds:   0%| | 0/5 [01:23<?, ?fold/s, fold=1/5, ep=5/10, loss=0.194, CV folds:   0%| | 0/5 [01:40<?, ?fold/s, fold=1/5, ep=6/10, loss=0.137, CV folds:   0%| | 0/5 [01:57<?, ?fold/s, fold=1/5, ep=7/10, loss=0.107, CV folds:   0%| | 0/5 [02:14<?, ?fold/s, fold=1/5, ep=8/10, loss=0.079,                                                                         CV folds:   0%| | 0/5 [02:14<?, ?fold/s, fold=1/5, ep=8/10, loss=0.079, CV folds:  20%|▏| 1/5 [02:14<08:57, 134.48s/fold, fold=1/5, ep=8/10, los  early stop fold 1 at epoch 8 (no improvement for 2 epochs)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 199/199 [00:00<00:00, 46081.07it/s]
+[1mBertForSequenceClassification LOAD REPORT[0m from: neuralmind/bert-base-portuguese-cased
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.decoder.weight             | UNEXPECTED | 
+cls.predictions.bias                       | UNEXPECTED | 
+cls.seq_relationship.weight                | UNEXPECTED | 
+cls.seq_relationship.bias                  | UNEXPECTED | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+CV folds:  20%|▏| 1/5 [02:31<08:57, 134.48s/fold, fold=2/5, ep=1/10, losCV folds:  20%|▏| 1/5 [02:48<08:57, 134.48s/fold, fold=2/5, ep=2/10, losCV folds:  20%|▏| 1/5 [03:05<08:57, 134.48s/fold, fold=2/5, ep=3/10, losCV folds:  20%|▏| 1/5 [03:21<08:57, 134.48s/fold, fold=2/5, ep=4/10, losCV folds:  20%|▏| 1/5 [03:38<08:57, 134.48s/fold, fold=2/5, ep=5/10, losCV folds:  20%|▏| 1/5 [03:55<08:57, 134.48s/fold, fold=2/5, ep=6/10, losCV folds:  20%|▏| 1/5 [04:12<08:57, 134.48s/fold, fold=2/5, ep=7/10, losCV folds:  20%|▏| 1/5 [04:28<08:57, 134.48s/fold, fold=2/5, ep=8/10, losCV folds:  20%|▏| 1/5 [04:45<08:57, 134.48s/fold, fold=2/5, ep=9/10, los                                                                        CV folds:  20%|▏| 1/5 [04:45<08:57, 134.48s/fold, fold=2/5, ep=9/10, losCV folds:  40%|▍| 2/5 [04:45<07:13, 144.44s/fold, fold=2/5, ep=9/10, los  early stop fold 2 at epoch 9 (no improvement for 2 epochs)
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 199/199 [00:00<00:00, 43752.50it/s]
+[1mBertForSequenceClassification LOAD REPORT[0m from: neuralmind/bert-base-portuguese-cased
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.decoder.weight             | UNEXPECTED | 
+cls.predictions.bias                       | UNEXPECTED | 
+cls.seq_relationship.weight                | UNEXPECTED | 
+cls.seq_relationship.bias                  | UNEXPECTED | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+CV folds:  40%|▍| 2/5 [05:03<07:13, 144.44s/fold, fold=3/5, ep=1/10, losCV folds:  40%|▍| 2/5 [05:19<07:13, 144.44s/fold, fold=3/5, ep=2/10, losCV folds:  40%|▍| 2/5 [05:36<07:13, 144.44s/fold, fold=3/5, ep=3/10, losCV folds:  40%|▍| 2/5 [05:53<07:13, 144.44s/fold, fold=3/5, ep=4/10, losCV folds:  40%|▍| 2/5 [06:09<07:13, 144.44s/fold, fold=3/5, ep=5/10, losCV folds:  40%|▍| 2/5 [06:26<07:13, 144.44s/fold, fold=3/5, ep=6/10, losCV folds:  40%|▍| 2/5 [06:43<07:13, 144.44s/fold, fold=3/5, ep=7/10, losCV folds:  40%|▍| 2/5 [06:59<07:13, 144.44s/fold, fold=3/5, ep=8/10, losCV folds:  40%|▍| 2/5 [07:16<07:13, 144.44s/fold, fold=3/5, ep=9/10, losCV folds:  40%|▍| 2/5 [07:33<07:13, 144.44s/fold, fold=3/5, ep=10/10, loCV folds:  60%|▌| 3/5 [07:33<05:10, 155.04s/fold, fold=3/5, ep=10/10, lo
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 199/199 [00:00<00:00, 49388.55it/s]
+[1mBertForSequenceClassification LOAD REPORT[0m from: neuralmind/bert-base-portuguese-cased
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.decoder.weight             | UNEXPECTED | 
+cls.predictions.bias                       | UNEXPECTED | 
+cls.seq_relationship.weight                | UNEXPECTED | 
+cls.seq_relationship.bias                  | UNEXPECTED | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+CV folds:  60%|▌| 3/5 [07:50<05:10, 155.04s/fold, fold=4/5, ep=1/10, losCV folds:  60%|▌| 3/5 [08:07<05:10, 155.04s/fold, fold=4/5, ep=2/10, losCV folds:  60%|▌| 3/5 [08:23<05:10, 155.04s/fold, fold=4/5, ep=3/10, losCV folds:  60%|▌| 3/5 [08:40<05:10, 155.04s/fold, fold=4/5, ep=4/10, losCV folds:  60%|▌| 3/5 [08:56<05:10, 155.04s/fold, fold=4/5, ep=5/10, losCV folds:  60%|▌| 3/5 [09:13<05:10, 155.04s/fold, fold=4/5, ep=6/10, losCV folds:  60%|▌| 3/5 [09:29<05:10, 155.04s/fold, fold=4/5, ep=7/10, losCV folds:  60%|▌| 3/5 [09:46<05:10, 155.04s/fold, fold=4/5, ep=8/10, losCV folds:  60%|▌| 3/5 [10:02<05:10, 155.04s/fold, fold=4/5, ep=9/10, losCV folds:  60%|▌| 3/5 [10:19<05:10, 155.04s/fold, fold=4/5, ep=10/10, loCV folds:  80%|▊| 4/5 [10:19<02:39, 159.34s/fold, fold=4/5, ep=10/10, lo
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 199/199 [00:00<00:00, 39057.86it/s]
+[1mBertForSequenceClassification LOAD REPORT[0m from: neuralmind/bert-base-portuguese-cased
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.decoder.weight             | UNEXPECTED | 
+cls.predictions.bias                       | UNEXPECTED | 
+cls.seq_relationship.weight                | UNEXPECTED | 
+cls.seq_relationship.bias                  | UNEXPECTED | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+CV folds:  80%|▊| 4/5 [10:37<02:39, 159.34s/fold, fold=5/5, ep=1/10, losCV folds:  80%|▊| 4/5 [10:54<02:39, 159.34s/fold, fold=5/5, ep=2/10, losCV folds:  80%|▊| 4/5 [11:11<02:39, 159.34s/fold, fold=5/5, ep=3/10, losCV folds:  80%|▊| 4/5 [11:28<02:39, 159.34s/fold, fold=5/5, ep=4/10, losCV folds:  80%|▊| 4/5 [11:46<02:39, 159.34s/fold, fold=5/5, ep=5/10, losCV folds:  80%|▊| 4/5 [12:03<02:39, 159.34s/fold, fold=5/5, ep=6/10, losCV folds:  80%|▊| 4/5 [12:20<02:39, 159.34s/fold, fold=5/5, ep=7/10, losCV folds:  80%|▊| 4/5 [12:38<02:39, 159.34s/fold, fold=5/5, ep=8/10, losCV folds:  80%|▊| 4/5 [12:55<02:39, 159.34s/fold, fold=5/5, ep=9/10, losCV folds:  80%|▊| 4/5 [13:12<02:39, 159.34s/fold, fold=5/5, ep=10/10, lo                                                                        CV folds:  80%|▊| 4/5 [13:12<02:39, 159.34s/fold, fold=5/5, ep=10/10, loCV folds: 100%|█| 5/5 [13:13<00:00, 164.55s/fold, fold=5/5, ep=10/10, loCV folds: 100%|█| 5/5 [13:13<00:00, 158.65s/fold, fold=5/5, ep=10/10, lo
+  early stop fold 5 at epoch 10 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp030_bertimbau_synthetic_rare
+=======================================================
+Macro F1: 0.7536
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.793  0.778  0.808    610
+1         0.938  0.901  0.980    693
+2         0.980  0.987  0.974  15968
+3         0.610  0.566  0.662    713
+4         0.662  0.685  0.640    214
+5         0.516  0.485  0.552     29
+6         0.776  0.717  0.844     45
+
+Fold F1s : [0.7696, 0.7194, 0.7272, 0.7551, 0.7717]
+Mean ± σ : 0.7486 ± 0.0216
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7536
+Threshold tuning best macro F1:     0.7581
+Offsets: {0: np.float64(0.2745), 1: np.float64(-0.2947), 2: np.float64(0.2987), 3: np.float64(0.1061), 4: np.float64(0.1971), 5: np.float64(-0.1232), 6: np.float64(-0.2914)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7581
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.794  0.764  0.826    610
+1         0.943  0.917  0.971    693
+2         0.981  0.985  0.977  15968
+3         0.603  0.585  0.623    713
+4         0.670  0.686  0.654    214
+5         0.533  0.516  0.552     29
+6         0.783  0.766  0.800     45
+
+
+--- Retraining on full data (8 epochs, mean of OOF best epochs [6, 7, 9, 10, 8]) ---
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 31718.28it/s]
+[1mBertForSequenceClassification LOAD REPORT[0m from: neuralmind/bert-base-portuguese-cased
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.decoder.weight             | UNEXPECTED | 
+cls.predictions.bias                       | UNEXPECTED | 
+cls.seq_relationship.weight                | UNEXPECTED | 
+cls.seq_relationship.bias                  | UNEXPECTED | 
+classifier.weight                          | MISSING    | 
+classifier.bias                            | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+Full retrain:   0%|                             | 0/8 [00:00<?, ?ep/s]Full retrain:  12%|██▋                  | 1/8 [00:18<02:07, 18.16s/ep]Full retrain:  25%|█████▎               | 2/8 [00:36<01:49, 18.18s/ep]Full retrain:  38%|███████▉             | 3/8 [00:54<01:30, 18.16s/ep]Full retrain:  50%|██████████▌          | 4/8 [01:12<01:12, 18.11s/ep]Full retrain:  62%|█████████████▏       | 5/8 [01:30<00:54, 18.13s/ep]Full retrain:  75%|███████████████▊     | 6/8 [01:48<00:36, 18.13s/ep]Full retrain:  88%|██████████████████▍  | 7/8 [02:06<00:18, 18.14s/ep]Full retrain: 100%|█████████████████████| 8/8 [02:25<00:00, 18.16s/ep]Full retrain: 100%|█████████████████████| 8/8 [02:25<00:00, 18.15s/ep]
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  2.79it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  2.79it/s]
+wandb: updating run metadata
+wandb: uploading config.yaml
+wandb: 
+wandb: Run history:
+wandb:        epoch ▁▁▁▁▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇███
+wandb:         fold ▁▁▁▁▁▁▃▃▃▃▃▃▃▅▅▅▅▅▅▅▅▅▆▆▆▆▆▆▆▆▆█████████
+wandb: fold_best_f1 █▁▂▆█
+wandb:           lr █▇▆▆▅▄▃█▇▆▆▅▃▃▂█▇▆▅▄▃▃▂█▇▆▆▅▃▃▂▁█▇▆▅▄▃▃▁
+wandb:   train/loss █▄▃▂▂▁▁█▃▂▂▂▁▁▁█▄▂▂▁▁▁▁█▃▂▂▂▁▁▁▁█▄▂▂▁▁▁▁
+wandb:    val/f1_c0 ▁▆▇████▃▆▇▇█▇██▂▅▆▇▇▇▇█▁▆▇▇▇▇▇▇▇▂▄▆▇▇▇▇▇
+wandb:    val/f1_c1 ▁▇▇▇▇██▆▇▇▇▇▇▇▇▆▇▇▇▇▇███████████▁███████
+wandb:    val/f1_c2 ▃██████▇███████▇███████▇████████▁███████
+wandb:    val/f1_c3 ▄▅▇▇▇██▅▅▆▇▇▇▇▇▂▆▇█████▁▆▆▇▇▇▇█▇▃▅▆▇▇▇██
+wandb:    val/f1_c4 ▃▅▆▇▇█▇▁▆▆▇▇▇██▄▄█▆▇███▂▅▆█▇█▇██▁▅▆▆▇▆▆▆
+wandb:          +17 ...
+wandb: 
+wandb: Run summary:
+wandb:        epoch 47
+wandb:         fold 5
+wandb: fold_best_f1 0.77165
+wandb:           lr 0
+wandb:    oof/f1_c0 0.7926
+wandb:    oof/f1_c1 0.93849
+wandb:    oof/f1_c2 0.98034
+wandb:    oof/f1_c3 0.61021
+wandb:    oof/f1_c4 0.66184
+wandb:    oof/f1_c5 0.51613
+wandb:          +28 ...
+wandb: 
+wandb: 🚀 View run exp030_bertimbau_synthetic_rare at: https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/xepyfxf5
+wandb: ⭐️ View project at: https://wandb.ai/biniamgaromsa/spr-2026-mammography
+wandb: Synced 5 W&B file(s), 2 media file(s), 4 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260421_104918-xepyfxf5/logs
+Model saved → experiments/exp030_bertimbau_synthetic_rare/model/
+
+Duration   : 953s  (15.9m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp030_bertimbau_synthetic_rare/

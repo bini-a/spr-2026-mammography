@@ -1,0 +1,15 @@
+{
+  "experiment_name": "exp035_svc_blend",
+  "type": "ensemble",
+  "components": [
+    "exp025_multiseed_ensemble",
+    "exp002_tfidf_svc"
+  ],
+  "weights": [
+    0.9,
+    0.1
+  ],
+  "seed": 42,
+  "threshold_n_iter": 2000,
+  "notes": ""
+}

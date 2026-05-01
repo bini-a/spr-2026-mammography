@@ -1,0 +1,22 @@
+{
+  "experiment_name": "exp036_majority_vote_6model",
+  "type": "majority_vote",
+  "components": [
+    "exp023_bertimbau_dedup",
+    "exp015a_bertimbau_seed7",
+    "exp015b_bertimbau_seed13",
+    "exp015c_bertimbau_seed21",
+    "exp030_bertimbau_synthetic_rare",
+    "exp031_bertimbau_synthetic_c56"
+  ],
+  "weights": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "seed": 42,
+  "notes": ""
+}

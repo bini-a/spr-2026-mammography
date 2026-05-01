@@ -1,0 +1,63 @@
+[log] 2026-04-21 12:09:11  →  experiments/exp032_bertimbau_synthcls_ft/train.log
+
+=======================================================
+Experiment : exp032_bertimbau_synthcls_ft
+Config     : configs/exp032_bertimbau_synthcls_ft.yaml
+Started    : 2026-04-21 12:09:11
+Git commit : a5c94a8
+Pretrained : models/bertimbau_synth_cls
+Notes      : BERTimbau base + supervised synthetic classification pretrain on 18k competition-provided synthetic reports, then honest fine-tune on real data.
+=======================================================
+GPUs : [0] NVIDIA RTX 6000 Ada Generation + [1] NVIDIA RTX 6000 Ada Generation
+wandb run : https://wandb.ai/biniamgaromsa/spr-2026-mammography/runs/npelz0uw
+Loading data... done  (18,272 real rows → 9,131 unique real texts for training, 5 folds)
+Tokenizing with 'models/bertimbau_synth_cls'... done
+  early stop fold 1 at epoch 8 (no improvement for 2 epochs)
+  early stop fold 3 at epoch 7 (no improvement for 2 epochs)
+  early stop fold 4 at epoch 10 (no improvement for 2 epochs)
+
+=======================================================
+OOF Results — exp032_bertimbau_synthcls_ft
+=======================================================
+Macro F1: 0.7303
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.774  0.708  0.854    610
+1         0.928  0.876  0.987    693
+2         0.975  0.990  0.960  15968
+3         0.582  0.503  0.691    713
+4         0.582  0.575  0.589    214
+5         0.561  0.571  0.552     29
+6         0.710  0.688  0.733     45
+
+Fold F1s : [0.7275, 0.7136, 0.6862, 0.7263, 0.7504]
+Mean ± σ : 0.7208 ± 0.0210
+
+--- Threshold Tuning ---
+Threshold tuning baseline macro F1: 0.7303
+Threshold tuning best macro F1:     0.7386
+Offsets: {0: np.float64(0.1641), 1: np.float64(-0.2215), 2: np.float64(0.2819), 3: np.float64(-0.0277), 4: np.float64(-0.1584), 5: np.float64(-0.2559), 6: np.float64(-0.1981)}
+
+=======================================================
+OOF Results (after threshold tuning)
+=======================================================
+Macro F1: 0.7386
+
+Class        F1   Prec    Rec      N
+--------------------------------------
+0         0.777  0.699  0.875    610
+1         0.936  0.892  0.984    693
+2         0.977  0.987  0.966  15968
+3         0.588  0.542  0.644    713
+4         0.593  0.624  0.565    214
+5         0.582  0.615  0.552     29
+6         0.717  0.702  0.733     45
+
+
+--- Retraining on full data (8 epochs, mean of OOF best epochs [6, 10, 5, 8, 10]) ---
+Model saved → experiments/exp032_bertimbau_synthcls_ft/model/
+
+Duration   : 778s  (13.0m)
+Results logged → experiments/results.csv
+Outputs    : experiments/exp032_bertimbau_synthcls_ft/

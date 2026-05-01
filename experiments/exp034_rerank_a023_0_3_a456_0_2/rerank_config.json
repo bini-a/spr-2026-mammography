@@ -1,0 +1,12 @@
+{
+  "experiment_name": "exp034_rerank_a023_0_3_a456_0_2",
+  "type": "rerank",
+  "base": "exp025_multiseed_ensemble",
+  "spec023": "exp034a_023_specialist",
+  "spec456": "exp034b_456_specialist",
+  "alpha023": 0.3,
+  "alpha456": 0.2,
+  "threshold_n_iter": 2000,
+  "seed": 42,
+  "notes": ""
+}
