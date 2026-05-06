@@ -13,3 +13,10 @@ Extracted features using Term Frequency-Inverse Document Frequency (TF-IDF) vect
 Then conduct preprocessing ablation study evaluating six preprocessing configurations using Linear SVC with 5-fold stratified cross-validation on the original Portuguese dataset.
 
 ![ablation](/Classical_ML/outputs_pt/plot3_preprocessing_ablation.png)
+
+## Model Comparison
+Seven classification algorithms organized into three families were evaluated:
+- Linear Models
+    - Sub Item A (indented with 4 spaces or 1 tab)
+    - Sub Item B
+- Probabilistic Models
