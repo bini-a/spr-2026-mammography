@@ -8,4 +8,8 @@ All reports undergo a baseline cleaning step (e.g lowercasing, removal of anonym
 - Stemming using NLTK SnowballStemmer for the target language
 - Lemmatization using spaCy lookup lemmatizer
 
-Extracted features using Term Frequency-Inverse Document Frequency (TF-IDF) vectorization at character and word level and  combined them through horizontal concatenation
+Extracted features using Term Frequency-Inverse Document Frequency (TF-IDF) vectorization at character and word level and  combined them through horizontal concatenation.
+
+Then conduct preprocessing ablation study evaluating six preprocessing configurations using Linear SVC with 5-fold stratified cross-validation on the original Portuguese dataset.
+
+![](/outputs_pt/plot3_preprocessing_ablation.png)
