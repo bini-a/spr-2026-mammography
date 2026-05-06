@@ -26,3 +26,8 @@ Seven classification algorithms organized into three families were evaluated:
 - Non Linear Models (Gradient Boosting)
     - LightGBM
     - XGBoost
+ 
+Standard 5-fold stratified cross-validation was used whereby in each iteration, 4 folds are used for training and 1 fold for
+validation.
+
+![model](/Classical_ML/outputs_pt/plot4_model_comparison.png)
