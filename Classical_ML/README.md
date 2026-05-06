@@ -7,3 +7,4 @@ All reports undergo a baseline cleaning step (e.g lowercasing, removal of anonym
 - Stop word removal using language specific NLTK corpora.
 - Stemming using NLTK SnowballStemmer for the target language
 - Lemmatization using spaCy lookup lemmatizer
+Extracted features using Term Frequency-Inverse Document Frequency (TF-IDF) vectorization at character and word level and  combined them through horizontal concatenation
