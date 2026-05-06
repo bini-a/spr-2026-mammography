@@ -17,6 +17,12 @@ Then conduct preprocessing ablation study evaluating six preprocessing configura
 ## Model Comparison
 Seven classification algorithms organized into three families were evaluated:
 - Linear Models
-    - Sub Item A (indented with 4 spaces or 1 tab)
-    - Sub Item B
+    - Linear Support Vector Classifier (LinearSVC)
+    - Logistic Regression
+    - SGD Classifier (modified Huber loss)
 - Probabilistic Models
+    - Multinomial Naive Bayes
+    - Complement Naive Bayes
+- Non Linear Models (Gradient Boosting)
+    - LightGBM
+    - XGBoost
