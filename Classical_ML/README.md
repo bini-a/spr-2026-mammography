@@ -31,5 +31,6 @@ Standard 5-fold stratified cross-validation was used whereby in each iteration, 
 validation.
 
 ![model](/Classical_ML/outputs_pt/plot4_model_comparison.png)
+Linear SVC achieved the highest F1-macro (∼0.745), with SGD Classifier virtually tied at (∼0.745) (Table 2), followed by Logistic Regression (0.718). The two gradient boosting models, LightGBM (0.6932) and XGBoost (0.6886), achieve identical F1-weighted scores (0.9476) but fall well below the linear models on F1-macro, reinforcing that tree-based methods struggle with high-dimensional sparse TF-IDF features. Both Naive Bayes variants perform poorly-Multinomial NB at 0.5362 and Complement NB at 0.4435-likely because the conditional independence assumption is violated by the correlated medical terminology in mammography reports.
 ![model](/Classical_ML/outputs_pt/perclass.png)
 
