@@ -31,3 +31,5 @@ Standard 5-fold stratified cross-validation was used whereby in each iteration, 
 validation.
 
 ![model](/Classical_ML/outputs_pt/plot4_model_comparison.png)
+![model](/Classical_ML/outputs_pt/perclass.png)
+
